@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="StatueData" load_steps=3 format=3 uid="uid://cfrost001"]
+
+[ext_resource type="Script" path="res://scripts/data/statue_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/classes/druid.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+id = "frost_maiden"
+display_name = "The Frost Maiden"
+description = "An ice mage channeling winter's wrath. Her attacks slow enemies, and her ultimate freezes them solid."
+portrait_texture = ExtResource("2_portrait")
+base_damage = 14.0
+attack_speed = 0.9
+attack_range = 160.0
+max_health = 75.0
+ability_name = "Frozen Prison"
+ability_description = "Encases all enemies in range in ice, immobilizing them for 4 seconds. Frozen enemies take 25% more damage."
+ability_cooldown = 16.0
+rarity = 2
+base_cost = 480
+target_priority = 0
+can_attack_flying = true
+can_attack_ground = true
+projectile_speed = 350.0
+is_melee = false

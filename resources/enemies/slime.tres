@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://cslime001"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/slime.jpg" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "slime"
+display_name = "Slime"
+sprite_texture = ExtResource("2_sprite")
+max_health = 40.0
+move_speed = 35.0
+damage_to_crystal = 5
+gold_reward = 8
+is_flying = false
+is_boss = false
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = false
+has_shield = false
+splits_on_death = true
+split_enemy_id = "mini_slime"
+split_count = 2
+scale_factor = 1.0
+tint_color = Color(0.3, 0.8, 0.3, 1)

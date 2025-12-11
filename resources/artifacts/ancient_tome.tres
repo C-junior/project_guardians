@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3 uid="uid://aancient_tome001"]
+
+[ext_resource type="Script" path="res://scripts/data/artifact_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/shadow_cloack.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "ancient_tome"
+display_name = "Ancient Tome"
+description = "A mystical grimoire containing secrets of faster spellcasting."
+icon_texture = ExtResource("2_icon")
+rarity = 2
+base_cost = 350
+cooldown_reduction = 0.25

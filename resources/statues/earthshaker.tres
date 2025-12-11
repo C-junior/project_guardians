@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="StatueData" load_steps=3 format=3 uid="uid://cearthshaker001"]
+
+[ext_resource type="Script" path="res://scripts/data/statue_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/classes/berserker.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+id = "earthshaker"
+display_name = "The Earthshaker"
+description = "A ferocious berserker wielding a massive greataxe. Slow but devastating, she excels at crowd control."
+portrait_texture = ExtResource("2_portrait")
+base_damage = 35.0
+attack_speed = 0.5
+attack_range = 100.0
+max_health = 130.0
+ability_name = "Ground Slam"
+ability_description = "Slams the ground dealing 250% damage to all enemies in range and slowing them by 50% for 4 seconds."
+ability_cooldown = 14.0
+rarity = 1
+base_cost = 500
+target_priority = 1
+can_attack_flying = false
+can_attack_ground = true
+projectile_speed = 0.0
+is_melee = true

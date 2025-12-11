@@ -1,0 +1,183 @@
+[gd_scene load_steps=2 format=3 uid="uid://hud001"]
+
+[ext_resource type="Script" path="res://scripts/ui/hud_controller.gd" id="1_script"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+offset_left = 20.0
+offset_top = 10.0
+offset_right = 1260.0
+offset_bottom = 60.0
+theme_override_constants/separation = 30
+
+[node name="WaveLabel" type="Label" parent="TopBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Wave 1"
+
+[node name="CrystalHealth" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CrystalIcon" type="Label" parent="TopBar/CrystalHealth"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "💎"
+
+[node name="HealthBar" type="ProgressBar" parent="TopBar/CrystalHealth"]
+custom_minimum_size = Vector2(200, 30)
+layout_mode = 2
+value = 100.0
+
+[node name="HealthLabel" type="Label" parent="TopBar/CrystalHealth"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "100/100"
+
+[node name="Spacer" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GoldContainer" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GoldIcon" type="Label" parent="TopBar/GoldContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "💰"
+
+[node name="GoldLabel" type="Label" parent="TopBar/GoldContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+text = "0"
+
+[node name="ActionButtons" type="HBoxContainer" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -70.0
+offset_right = 520.0
+offset_bottom = -20.0
+grow_vertical = 0
+theme_override_constants/separation = 15
+
+[node name="InventoryButton" type="Button" parent="ActionButtons"]
+custom_minimum_size = Vector2(140, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "📦 Inventory"
+
+[node name="ShopButton" type="Button" parent="ActionButtons"]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "🛒 Shop"
+
+[node name="StartWaveButton" type="Button" parent="ActionButtons"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⚔️ Start Wave"
+
+[node name="AbilityBar" type="HBoxContainer" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -250.0
+offset_top = -80.0
+offset_right = 250.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="SpeedControls" type="HBoxContainer" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -60.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="Speed1x" type="Button" parent="SpeedControls"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "1x"
+
+[node name="Speed2x" type="Button" parent="SpeedControls"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "2x"
+
+[node name="Speed3x" type="Button" parent="SpeedControls"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "3x"
+
+[node name="PauseButton" type="Button" parent="SpeedControls"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "⏸️"
+
+[node name="WaveStartPanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -50.0
+offset_right = 150.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="WaveStartPanel"]
+layout_mode = 2
+alignment = 1
+
+[node name="WaveStartLabel" type="Label" parent="WaveStartPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Wave 1"
+horizontal_alignment = 1
+
+[node name="WaveCompletePanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -50.0
+offset_right = 150.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="WaveCompletePanel"]
+layout_mode = 2
+alignment = 1
+
+[node name="WaveCompleteLabel" type="Label" parent="WaveCompletePanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.4, 1, 0.4, 1)
+text = "Wave Complete!"
+horizontal_alignment = 1

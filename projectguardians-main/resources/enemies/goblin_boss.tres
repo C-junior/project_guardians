@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://cgoblinboss001"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/goblin_boss.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "goblin_boss"
+display_name = "Goblin King"
+sprite_texture = ExtResource("2_sprite")
+max_health = 200.0
+move_speed = 40.0
+damage_to_crystal = 30
+gold_reward = 50
+is_flying = false
+is_boss = true
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = true
+summon_cooldown = 6.0
+summon_enemy_id = "goblin"
+summon_count = 3
+has_shield = false
+splits_on_death = false
+scale_factor = 1.5
+tint_color = Color(1, 0.9, 0.3, 1)

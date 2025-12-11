@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3 uid="uid://awar_banner001"]
+
+[ext_resource type="Script" path="res://scripts/data/artifact_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/fire_orb.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "war_banner"
+display_name = "War Banner"
+description = "A battle-worn standard that inspires all statues to fight harder."
+icon_texture = ExtResource("2_icon")
+rarity = 2
+base_cost = 400
+damage_multiplier = 0.15

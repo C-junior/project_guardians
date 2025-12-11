@@ -1,0 +1,93 @@
+[gd_scene load_steps=8 format=3 uid="uid://main001"]
+
+[ext_resource type="Script" uid="uid://ijmr5wlpupyw" path="res://scripts/main.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://rena001" path="res://scenes/combat/arena.tscn" id="2_arena"]
+[ext_resource type="PackedScene" uid="uid://hud001" path="res://scenes/ui/hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shop_ui.tscn" id="4_shop"]
+[ext_resource type="PackedScene" uid="uid://menu001" path="res://scenes/main/main_menu.tscn" id="5_menu"]
+[ext_resource type="PackedScene" path="res://scenes/ui/statue_selection_ui.tscn" id="6_statue_selection"]
+[ext_resource type="PackedScene" path="res://scenes/ui/inventory_ui.tscn" id="7_inventory"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="MainMenu" parent="." instance=ExtResource("5_menu")]
+
+[node name="Arena" parent="." instance=ExtResource("2_arena")]
+visible = false
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
+visible = false
+follow_viewport_enabled = true
+
+[node name="ShopUI" parent="." instance=ExtResource("4_shop")]
+visible = false
+
+[node name="StatueSelectionUI" parent="." instance=ExtResource("6_statue_selection")]
+visible = false
+
+[node name="InventoryUI" parent="." instance=ExtResource("7_inventory")]
+visible = false
+
+[node name="GameOverScreen" type="CanvasLayer" parent="."]
+visible = false
+
+[node name="Panel" type="Panel" parent="GameOverScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="GameOverScreen/Panel"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="GameOverLabel" type="Label" parent="GameOverScreen/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 48
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="WavesSurvivedLabel" type="Label" parent="GameOverScreen/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Waves Survived: 0"
+horizontal_alignment = 1
+
+[node name="EssenceLabel" type="Label" parent="GameOverScreen/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.3, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "Aether Essence Earned: 0"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="GameOverScreen/Panel/VBox"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="RestartButton" type="Button" parent="GameOverScreen/Panel/VBox"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+text = "Try Again"
+
+[node name="MenuButton" type="Button" parent="GameOverScreen/Panel/VBox"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+text = "Main Menu"

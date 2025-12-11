@@ -1,0 +1,106 @@
+[gd_scene load_steps=2 format=3 uid="uid://inventory_ui001"]
+
+[ext_resource type="Script" path="res://scripts/ui/inventory_ui.gd" id="1_script"]
+
+[node name="InventoryUI" type="CanvasLayer"]
+layer = 8
+script = ExtResource("1_script")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="Panel" parent="Control"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -180.0
+offset_right = 400.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "📦 Inventory"
+
+[node name="Spacer" type="Control" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TabsContainer" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="StatuesTab" type="Button" parent="Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer"]
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "🗿 Statues"
+
+[node name="ArtifactsTab" type="Button" parent="Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer"]
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "✨ Artifacts"
+
+[node name="ConsumablesTab" type="Button" parent="Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer"]
+custom_minimum_size = Vector2(110, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "🧪 Consumables"
+
+[node name="CloseButton" type="Button" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "✕"
+
+[node name="ItemsScroll" type="ScrollContainer" parent="Control/Panel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+
+[node name="ItemsGrid" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer/ItemsScroll"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 10
+
+[node name="EmptyLabel" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+text = "No items in inventory"
+horizontal_alignment = 1

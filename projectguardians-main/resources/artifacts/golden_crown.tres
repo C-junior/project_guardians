@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3 uid="uid://agoldcrown001"]
+
+[ext_resource type="Script" path="res://scripts/data/artifact_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/soul_gem.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "golden_crown"
+display_name = "Golden Crown"
+description = "A gilded crown that attracts wealth. Increases all gold earned."
+icon_texture = ExtResource("2_icon")
+rarity = 1
+base_cost = 300
+gold_multiplier = 0.2

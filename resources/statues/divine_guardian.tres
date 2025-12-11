@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="StatueData" load_steps=3 format=3 uid="uid://cdivine001"]
+
+[ext_resource type="Script" path="res://scripts/data/statue_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/classes/paladin.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+id = "divine_guardian"
+display_name = "The Divine Guardian"
+description = "A holy paladin blessed with sacred power. Her presence heals nearby statues while smiting evil foes."
+portrait_texture = ExtResource("2_portrait")
+base_damage = 18.0
+attack_speed = 0.9
+attack_range = 120.0
+max_health = 120.0
+ability_name = "Radiant Smite"
+ability_description = "Calls down holy light dealing 300% damage to undead/demons. Heals all nearby statues for 20% max HP."
+ability_cooldown = 15.0
+rarity = 2
+base_cost = 550
+target_priority = 0
+can_attack_flying = true
+can_attack_ground = true
+projectile_speed = 400.0
+is_melee = false

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://corcboss001"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/orc_boss.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "orc_boss"
+display_name = "Orc Warlord"
+sprite_texture = ExtResource("2_sprite")
+max_health = 400.0
+move_speed = 35.0
+damage_to_crystal = 50
+gold_reward = 100
+is_flying = false
+is_boss = true
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = false
+has_shield = true
+frontal_armor = 0.6
+splits_on_death = false
+scale_factor = 1.8
+tint_color = Color(0.8, 0.3, 0.3, 1)

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="StatueData" load_steps=3 format=3 uid="uid://csentinel001"]
+
+[ext_resource type="Script" path="res://scripts/data/statue_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/classes/knight.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+id = "sentinel"
+display_name = "The Sentinel"
+description = "A stalwart guardian with sword and shield. High armor and defensive capabilities make her ideal for blocking enemy paths."
+portrait_texture = ExtResource("2_portrait")
+base_damage = 15.0
+attack_speed = 0.8
+attack_range = 80.0
+max_health = 150.0
+ability_name = "Shield Bash"
+ability_description = "Stuns all enemies in a cone for 2 seconds and gains 50% damage reduction for 3 seconds."
+ability_cooldown = 12.0
+rarity = 0
+base_cost = 350
+target_priority = 0
+can_attack_flying = false
+can_attack_ground = true
+projectile_speed = 0.0
+is_melee = true

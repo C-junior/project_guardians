@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="StatueData" load_steps=3 format=3 uid="uid://carcane001"]
+
+[ext_resource type="Script" path="res://scripts/data/statue_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/classes/mage.png" id="2_portrait"]
+
+[resource]
+script = ExtResource("1_script")
+id = "arcane_weaver"
+display_name = "The Arcane Weaver"
+description = "A mystical sorceress wielding elemental magic. Her chain lightning devastates groups of enemies."
+portrait_texture = ExtResource("2_portrait")
+base_damage = 20.0
+attack_speed = 0.7
+attack_range = 180.0
+max_health = 80.0
+ability_name = "Chain Lightning"
+ability_description = "Launches lightning that hits the target and bounces to 3 nearby enemies, dealing 150% damage to each."
+ability_cooldown = 10.0
+rarity = 1
+base_cost = 450
+target_priority = 1
+can_attack_flying = true
+can_attack_ground = true
+projectile_speed = 500.0
+is_melee = false

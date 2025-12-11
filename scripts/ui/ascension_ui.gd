@@ -390,12 +390,16 @@ func _update_ui() -> void:
 	
 	if can_ascend:
 		result_container.visible = true
-		var statue_data = selected_statues[0].get("data")
-		var portrait_tex = statue_data.get("portrait_texture")
+		var base_data = selected_statues[0].get("data")
+		
+		# Get the evolved version (handles special sprites like Huntress)
+		var result_data = _get_evolved_statue_data(base_data)
+		
+		var portrait_tex = result_data.get("portrait_texture")
 		if portrait_tex:
 			result_icon.texture = portrait_tex
 		var tier_name = EvolutionManager.get_tier_name(1)  # Evolving to tier 1 (Enhanced)
-		result_label.text = "%s → %s" % [statue_data.get("display_name"), tier_name]
+		result_label.text = "%s → %s" % [base_data.get("display_name"), tier_name]
 		status_label.text = "✅ Ready to Ascend!"
 		status_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
 	else:
@@ -434,12 +438,40 @@ func _check_can_ascend() -> bool:
 	return true
 
 
+## Helper to get evolved statue data (handling special overrides)
+func _get_evolved_statue_data(base_data: Resource) -> Resource:
+	if not base_data:
+		return null
+	
+	var statue_id = base_data.get("id")
+	
+	# SPECIAL CASE: Huntress/Archer Awaken Sprite
+	if statue_id == "huntress":
+		# Duplicate the resource to modify it without affecting the original
+		var items = GameManager.get_inventory_items("statues")
+		# Check if we already have an "Awakened Huntress" resource in inventory to reuse?
+		# For now, just create a new runtime one.
+		
+		var result = base_data.duplicate()
+		# Update ID so it doesn't stack with base version
+		result.id = statue_id + "_awaken"
+		
+		var awaken_tex = load("res://assets/classes/archer_awaken.png")
+		if awaken_tex:
+			result.portrait_texture = awaken_tex
+			result.display_name = "Awakened " + base_data.get("display_name")
+		return result
+	
+	# Default: return base data (statue becomes Tier 1 but uses same base resource)
+	# Logic elsewhere handles the +stats from tier
+	return base_data
+
+
 func _on_ascend_pressed() -> void:
 	if not _check_can_ascend():
 		return
 	
-	var statue_data = selected_statues[0].get("data")
-	var statue_id = statue_data.get("id")
+	var base_statue_data = selected_statues[0].get("data")
 	
 	# Remove statues from their respective sources
 	var arena = null
@@ -450,7 +482,7 @@ func _on_ascend_pressed() -> void:
 		
 		if source == "inventory":
 			# Remove from inventory
-			GameManager.remove_from_inventory(statue_data, "statues")
+			GameManager.remove_from_inventory(base_statue_data, "statues")
 		else:  # field
 			# Remove placed statue from field
 			if node and is_instance_valid(node):
@@ -460,15 +492,16 @@ func _on_ascend_pressed() -> void:
 				GameManager.unregister_statue(node)
 				node.queue_free()
 	
-	# Add 1 evolved statue to inventory (tier 1)
-	# Note: Current inventory doesn't track tiers, so we just add the base statue back
-	# The player gets 1 back, effectively "upgrading" 3→1
-	GameManager.add_to_inventory(statue_data, "statues")
+	# Determine result data (handle awakened sprites)
+	var evolved_data = _get_evolved_statue_data(base_statue_data)
 	
-	print("[Ascension] Upgraded 3x %s into 1x Enhanced %s! (combined from inventory + field)" % [statue_data.get("display_name"), statue_data.get("display_name")])
+	# Add 1 evolved statue to inventory (tier 1)
+	GameManager.add_to_inventory(evolved_data, "statues")
+	
+	print("[Ascension] Upgraded 3x %s into 1x %s! (combined from inventory + field)" % [base_statue_data.get("display_name"), evolved_data.get("display_name")])
 	
 	# Emit signal
-	ascension_completed.emit(statue_data, 1)
+	ascension_completed.emit(evolved_data, 1)
 	
 	# Refresh and close
 	GameManager.inventory_changed.emit()

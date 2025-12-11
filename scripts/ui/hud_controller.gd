@@ -211,4 +211,8 @@ func _process(_delta: float) -> void:
 	for button in ability_bar.get_children():
 		if button.has_meta("statue"):
 			var statue = button.get_meta("statue")
+			# Check if statue was freed (e.g., during ascension)
+			if not is_instance_valid(statue):
+				button.queue_free()
+				continue
 			_update_ability_button(button, statue)

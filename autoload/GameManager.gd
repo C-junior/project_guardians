@@ -132,16 +132,31 @@ func start_next_wave() -> void:
 ## Gold Management
 func add_gold(amount: int) -> void:
 	var bonus_multiplier = 1.0
-	# Check for gold-boosting artifacts
+	# Check for gold-boosting artifacts (Golden Crown etc)
 	for artifact in active_artifacts:
-		if artifact.has_method("get_gold_multiplier"):
-			bonus_multiplier += artifact.get_gold_multiplier()
+		var gold_mult = artifact.get("gold_multiplier") if artifact.get("gold_multiplier") else 0.0
+		if gold_mult > 0:
+			bonus_multiplier += gold_mult
 	# Check for gold-boosting consumables (Gold Fever)
 	for consumable in active_consumables:
 		var gold_mult = consumable.get("gold_multiplier") if consumable.get("gold_multiplier") else 0.0
 		if gold_mult > 0:
 			bonus_multiplier += gold_mult
 	gold += int(amount * bonus_multiplier)
+
+
+## Get total gold multiplier (for display purposes)
+func get_gold_multiplier() -> float:
+	var multiplier = 1.0
+	for artifact in active_artifacts:
+		var gold_mult = artifact.get("gold_multiplier") if artifact.get("gold_multiplier") else 0.0
+		if gold_mult > 0:
+			multiplier += gold_mult
+	for consumable in active_consumables:
+		var gold_mult = consumable.get("gold_multiplier") if consumable.get("gold_multiplier") else 0.0
+		if gold_mult > 0:
+			multiplier += gold_mult
+	return multiplier
 
 
 func spend_gold(amount: int) -> bool:

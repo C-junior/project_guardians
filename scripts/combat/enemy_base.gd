@@ -287,12 +287,18 @@ func _on_teleport_timer() -> void:
 
 ## Death
 func _die() -> void:
-	# Award gold (base + bonus from artifacts like Soul Gem)
-	var total_gold = gold_reward + GameManager.get_gold_per_kill()
-	GameManager.add_gold(total_gold)
+	# Calculate base gold (with Soul Gem bonus)
+	var base_gold = gold_reward + GameManager.get_gold_per_kill()
 	
-	# Spawn gold popup (show total)
-	_spawn_gold_popup(total_gold)
+	# Calculate actual gold with multipliers (Golden Crown, Gold Fever)
+	var gold_multiplier = GameManager.get_gold_multiplier()
+	var actual_gold = int(base_gold * gold_multiplier)
+	
+	# Add gold to player (this applies the multiplier again, so pass base)
+	GameManager.add_gold(base_gold)
+	
+	# Spawn gold popup (show actual earned amount)
+	_spawn_gold_popup(actual_gold)
 	
 	# Split on death
 	if enemy_data.splits_on_death and arena:
@@ -302,9 +308,9 @@ func _die() -> void:
 				var split = arena.spawn_enemy(split_data)
 				if split and path_follow:
 					split.path_follow.progress = path_follow.progress
-					split.position = position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+				split.position = position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
 	
-	died.emit(gold_reward)
+	died.emit(actual_gold)
 	
 	# Clean up path follow
 	if path_follow:

@@ -207,14 +207,26 @@ func start_wave(wave_data: Resource) -> void:
 	
 	# Spawn enemies according to wave data
 	var spawn_sequence = wave_data.get_spawn_sequence()
+	print("[Arena] Wave %d spawn sequence: %d enemies" % [wave_data.wave_number, spawn_sequence.size()])
 	for spawn_info in spawn_sequence:
-		await get_tree().create_timer(spawn_info.spawn_time).timeout
+		print("[Arena] Queue spawn: %s at t=%.1f" % [spawn_info.enemy_id, spawn_info.spawn_time])
+	
+	# Track last spawn time for proper timing
+	var last_spawn_time = 0.0
+	for spawn_info in spawn_sequence:
+		var wait_time = spawn_info.spawn_time - last_spawn_time
+		if wait_time > 0:
+			await get_tree().create_timer(wait_time).timeout
+		last_spawn_time = spawn_info.spawn_time
+		
 		if not wave_in_progress:
 			break
 		
 		var enemy_resource = _load_enemy_resource(spawn_info.enemy_id)
 		if enemy_resource:
 			spawn_enemy(enemy_resource)
+		else:
+			print("[Arena] Failed to load enemy: %s" % spawn_info.enemy_id)
 
 
 ## Apply consumable effects when wave starts

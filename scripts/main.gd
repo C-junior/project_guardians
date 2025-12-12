@@ -225,7 +225,14 @@ func _on_shop_closed() -> void:
 	# Hide inventory when shop closes
 	if inventory_ui:
 		inventory_ui.visible = false
-	# Wave starts via GameManager.start_next_wave()
+	
+	# If we're in COMBAT state (wave was started from shop), start spawning enemies
+	if GameManager.current_state == GameManager.GameState.COMBAT:
+		# Generate wave and start combat
+		var wave_data = WaveData.generate_wave(GameManager.current_wave)
+		if arena:
+			arena.start_wave(wave_data)
+		print("[Main] Starting wave %d with enemies" % GameManager.current_wave)
 
 
 func _enter_placement_mode() -> void:

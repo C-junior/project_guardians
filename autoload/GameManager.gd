@@ -55,6 +55,7 @@ var active_artifacts: Array[Resource] = []
 var active_consumables: Array = []  # Can hold Resource or Dictionary
 var current_blessing: Resource = null
 var selected_starting_statue: Resource = null
+var pending_upgrade: Resource = null  # Upgrade waiting to be applied to a statue
 
 # Player Inventory (persists during run)
 # Format: { "statues": [{"data": Resource, "count": int, "tier": int}], "artifacts": [...], "consumables": [...] }

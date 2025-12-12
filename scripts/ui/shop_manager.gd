@@ -23,6 +23,7 @@ var item_card_scene: PackedScene = preload("res://scenes/ui/shop_item_card.tscn"
 var statue_pool: Array[Resource] = []
 var artifact_pool: Array[Resource] = []
 var consumable_pool: Array[Resource] = []
+var upgrade_pool: Array[Resource] = []
 
 # Close button reference
 @onready var close_button: Button = $Control/Panel/MarginContainer/VBoxContainer/Footer/CloseButton
@@ -77,7 +78,19 @@ func _load_item_pools() -> void:
 					consumable_pool.append(res)
 			file_name = consumable_dir.get_next()
 	
-	print("[Shop] Loaded %d statues, %d artifacts, %d consumables" % [statue_pool.size(), artifact_pool.size(), consumable_pool.size()])
+	# Load all upgrade resources
+	var upgrade_dir = DirAccess.open("res://resources/upgrades/")
+	if upgrade_dir:
+		upgrade_dir.list_dir_begin()
+		var file_name = upgrade_dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".tres"):
+				var res = load("res://resources/upgrades/" + file_name)
+				if res:
+					upgrade_pool.append(res)
+			file_name = upgrade_dir.get_next()
+	
+	print("[Shop] Loaded %d statues, %d artifacts, %d consumables, %d upgrades" % [statue_pool.size(), artifact_pool.size(), consumable_pool.size(), upgrade_pool.size()])
 
 
 ## Open shop for preparation phase
@@ -110,16 +123,16 @@ func _generate_shop_items() -> void:
 			item_count += extra
 	
 	# Determine item distribution
-	# 50% statues, 30% artifacts, 20% consumables (roughly)
+	# 40% statues, 25% artifacts, 15% consumables, 20% upgrades (roughly)
 	for i in range(item_count):
 		var roll = randf()
 		var item_data: Dictionary = {}
 		
-		if roll < 0.5 and statue_pool.size() > 0:
+		if roll < 0.40 and statue_pool.size() > 0:
 			# Statue
 			var statue = statue_pool[randi() % statue_pool.size()]
 			item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
-		elif roll < 0.8 and artifact_pool.size() > 0:
+		elif roll < 0.65 and artifact_pool.size() > 0:
 			# Artifact
 			var artifact = artifact_pool[randi() % artifact_pool.size()]
 			# Don't offer already acquired artifacts
@@ -134,13 +147,17 @@ func _generate_shop_items() -> void:
 				# Fallback to statue
 				var statue = statue_pool[randi() % statue_pool.size()]
 				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
+		elif roll < 0.80 and consumable_pool.size() > 0:
+			# Consumable
+			var consumable = consumable_pool[randi() % consumable_pool.size()]
+			item_data = {"resource": consumable, "type": "consumable", "cost": consumable.base_cost}
+		elif upgrade_pool.size() > 0 and GameManager.placed_statues.size() > 0:
+			# Upgrade (only if player has placed statues to upgrade)
+			var upgrade = upgrade_pool[randi() % upgrade_pool.size()]
+			item_data = {"resource": upgrade, "type": "upgrade", "cost": upgrade.base_cost}
 		else:
-			# Consumable - use actual resource
-			if consumable_pool.size() > 0:
-				var consumable = consumable_pool[randi() % consumable_pool.size()]
-				item_data = {"resource": consumable, "type": "consumable", "cost": consumable.base_cost}
-			else:
-				# Fallback to statue if no consumables
+			# Fallback to statue
+			if statue_pool.size() > 0:
 				var statue = statue_pool[randi() % statue_pool.size()]
 				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
 		
@@ -188,6 +205,12 @@ func _on_item_purchased(item_data: Dictionary) -> void:
 				GameManager.add_to_inventory(item_data.resource, "consumables")
 				print("[Shop] Consumable added to inventory: %s" % item_data.resource.display_name)
 			item_purchased.emit(item_data.resource, "consumable")
+		"upgrade":
+			# Upgrade needs to target a statue - store pending upgrade
+			if item_data.resource:
+				GameManager.pending_upgrade = item_data.resource
+				print("[Shop] Upgrade purchased: %s - Select a statue to apply it!" % item_data.resource.display_name)
+			item_purchased.emit(item_data.resource, "upgrade")
 	
 	# Regenerate shop to remove purchased item
 	_generate_shop_items()

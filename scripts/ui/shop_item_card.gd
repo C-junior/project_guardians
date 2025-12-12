@@ -50,6 +50,8 @@ func _apply_setup(data: Dictionary) -> void:
 				_setup_consumable(data.resource)
 			else:
 				_setup_consumable(data.get("data", {}))
+		"upgrade":
+			_setup_upgrade(data.resource)
 	
 	cost_label.text = "💰 %d" % item_cost
 	update_affordability(GameManager.gold)
@@ -139,6 +141,29 @@ func _setup_consumable(data: Variant) -> void:
 	stylebox.set_border_width_all(2)
 	stylebox.border_color = Color(0.4, 0.8, 0.4)  # Green for consumables
 	stylebox.bg_color = Color(0.12, 0.18, 0.12, 0.9)
+	stylebox.set_corner_radius_all(8)
+	add_theme_stylebox_override("panel", stylebox)
+
+
+func _setup_upgrade(upgrade: Resource) -> void:
+	if not upgrade:
+		return
+	
+	if name_label:
+		name_label.text = upgrade.display_name if upgrade.display_name else "Upgrade"
+	
+	if type_label:
+		type_label.text = "⬆️ Statue Upgrade"
+		type_label.modulate = Color(1.0, 0.6, 0.2)  # Orange
+	
+	# Add tooltip with effect
+	var effect_desc = upgrade.get_effect_description() if upgrade.has_method("get_effect_description") else upgrade.description
+	tooltip_text = "%s\n\n%s" % [upgrade.display_name, effect_desc]
+	
+	var stylebox = StyleBoxFlat.new()
+	stylebox.set_border_width_all(2)
+	stylebox.border_color = Color(1.0, 0.6, 0.2)  # Orange for upgrades
+	stylebox.bg_color = Color(0.22, 0.16, 0.10, 0.9)
 	stylebox.set_corner_radius_all(8)
 	add_theme_stylebox_override("panel", stylebox)
 

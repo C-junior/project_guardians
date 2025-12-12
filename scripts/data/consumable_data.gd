@@ -23,7 +23,7 @@ class_name ConsumableData
 
 ## Get effect description for UI
 func get_effect_description() -> String:
-	var effects: Array[String] = []
+	var effects: Array = []
 	
 	if abilities_start_ready:
 		effects.append("All abilities start ready")

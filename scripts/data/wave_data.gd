@@ -84,7 +84,7 @@ static func generate_wave(wave_num: int) -> WaveData:
 ## Get readable preview of wave composition
 static func get_wave_preview(wave_num: int) -> String:
 	var wave = generate_wave(wave_num)
-	var preview_parts: Array[String] = []
+	var preview_parts: Array = []
 	
 	for group in wave.spawn_groups:
 		var enemy_id = group.get("enemy_id", "")

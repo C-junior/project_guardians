@@ -68,9 +68,9 @@ var player_inventory: Dictionary = {
 var game_speed: float = 1.0
 
 # Meta-Progression (persisted)
-var unlocked_statues: Array[String] = ["sentinel", "arcane_weaver", "huntress"]
-var unlocked_artifacts: Array[String] = []
-var unlocked_blessings: Array[String] = ["warriors_resolve", "merchants_fortune", "ancient_power"]
+var unlocked_statues: Array = ["sentinel", "arcane_weaver", "huntress"]
+var unlocked_artifacts: Array = []
+var unlocked_blessings: Array = ["warriors_resolve", "merchants_fortune", "ancient_power"]
 var permanent_gold_bonus: int = 0
 var starting_statue_count: int = 1
 

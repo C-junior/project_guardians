@@ -22,7 +22,7 @@ class_name UpgradeData
 
 ## Get effect description for UI
 func get_effect_description() -> String:
-	var effects: Array[String] = []
+	var effects: Array = []
 	
 	if damage_multiplier > 0:
 		effects.append("+%d%% damage" % int(damage_multiplier * 100))

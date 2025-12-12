@@ -247,7 +247,7 @@ func select_statue(statue: Node) -> void:
 ## Get list of statue types that can be merged (have 2+ total)
 func get_mergeable_statue_types() -> Array:
 	var mergeable: Array = []
-	var checked_ids: Array[String] = []
+	var checked_ids: Array = []
 	
 	# Check placed statues
 	for statue in GameManager.placed_statues:

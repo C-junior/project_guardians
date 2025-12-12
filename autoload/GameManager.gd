@@ -111,6 +111,10 @@ func end_wave(victory: bool) -> void:
 		var wave_bonus = 50 + (current_wave * 10)
 		add_gold(wave_bonus)
 		print("[GameManager] Wave %d complete! Bonus: %d gold" % [current_wave, wave_bonus])
+		
+		# Apply interest bonus from artifacts (like Merchant's Insurance)
+		_apply_interest_bonus()
+		
 		current_state = GameState.SHOP
 		reroll_count = 0  # Reset reroll cost each wave
 	else:
@@ -272,6 +276,44 @@ func get_range_bonus() -> float:
 		if artifact.has_method("get_range_bonus"):
 			bonus += artifact.get_range_bonus()
 	return bonus
+
+
+## Get execute damage multiplier for enemies below HP threshold
+func get_execute_damage_mult(enemy_hp_percent: float) -> float:
+	for artifact in active_artifacts:
+		var threshold = artifact.get("execute_threshold") if artifact.get("execute_threshold") else 0.0
+		var mult = artifact.get("execute_damage_mult") if artifact.get("execute_damage_mult") else 0.0
+		if threshold > 0 and mult > 0 and enemy_hp_percent <= threshold:
+			return mult
+	return 1.0
+
+
+## Get extra gold per kill from artifacts
+func get_gold_per_kill() -> int:
+	var total = 0
+	for artifact in active_artifacts:
+		var gold = artifact.get("gold_per_kill") if artifact.get("gold_per_kill") else 0
+		total += gold
+	return total
+
+
+## Get statue health regen rate (percentage per second)
+func get_statue_health_regen() -> float:
+	var total = 0.0
+	for artifact in active_artifacts:
+		var regen = artifact.get("statue_health_regen") if artifact.get("statue_health_regen") else 0.0
+		total += regen
+	return total
+
+
+## Apply interest bonus from artifacts at wave end
+func _apply_interest_bonus() -> void:
+	for artifact in active_artifacts:
+		var threshold = artifact.get("interest_gold_threshold") if artifact.get("interest_gold_threshold") else 0
+		var bonus = artifact.get("interest_bonus") if artifact.get("interest_bonus") else 0
+		if threshold > 0 and bonus > 0 and gold >= threshold:
+			gold += bonus
+			print("[GameManager] Interest bonus! +%d gold (had %d+)" % [bonus, threshold])
 
 
 ## Inventory Management

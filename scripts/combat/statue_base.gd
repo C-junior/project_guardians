@@ -141,7 +141,13 @@ func _setup_tier_glow() -> void:
 		tier_glow.texture = sprite.texture
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# Apply health regeneration from artifacts (like Healing Spring)
+	var regen_rate = GameManager.get_statue_health_regen()
+	if regen_rate > 0 and current_health < max_health:
+		current_health = min(current_health + (max_health * regen_rate * delta), max_health)
+		_update_health_bar()
+	
 	# Find target if none
 	if current_target == null or not is_instance_valid(current_target):
 		current_target = _find_target()
@@ -256,6 +262,13 @@ func _attack(target: Node) -> void:
 	# Blade storm crit chance
 	if in_blade_storm and randf() < 0.5:
 		final_damage *= 2.0
+	
+	# Execute damage bonus (from Executioner's Stone)
+	if target.has_method("get_hp_percent"):
+		var hp_percent = target.get_hp_percent()
+		var execute_mult = GameManager.get_execute_damage_mult(hp_percent)
+		if execute_mult > 1.0:
+			final_damage *= execute_mult
 	
 	if statue_data.is_melee:
 		# Melee: instant damage

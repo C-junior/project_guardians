@@ -227,6 +227,11 @@ func _update_health_bar() -> void:
 		health_bar.modulate = Color.RED
 
 
+## Get current HP as percentage (0.0 to 1.0) for execute damage calculation
+func get_hp_percent() -> float:
+	return current_health / max_health if max_health > 0 else 0.0
+
+
 ## Status effects
 func apply_stun(duration: float) -> void:
 	is_stunned = true
@@ -276,11 +281,12 @@ func _on_teleport_timer() -> void:
 
 ## Death
 func _die() -> void:
-	# Award gold
-	GameManager.add_gold(gold_reward)
+	# Award gold (base + bonus from artifacts like Soul Gem)
+	var total_gold = gold_reward + GameManager.get_gold_per_kill()
+	GameManager.add_gold(total_gold)
 	
-	# Spawn gold popup
-	_spawn_gold_popup()
+	# Spawn gold popup (show total)
+	_spawn_gold_popup(total_gold)
 	
 	# Split on death
 	if enemy_data.splits_on_death and arena:
@@ -301,9 +307,10 @@ func _die() -> void:
 	queue_free()
 
 
-func _spawn_gold_popup() -> void:
+func _spawn_gold_popup(amount: int = -1) -> void:
+	var show_gold = amount if amount > 0 else gold_reward
 	var label = Label.new()
-	label.text = "+%d" % gold_reward
+	label.text = "+%d" % show_gold
 	label.position = Vector2(-15, -60)
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color.GOLD)

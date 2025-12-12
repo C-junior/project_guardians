@@ -30,6 +30,10 @@ class_name ArtifactData
 @export_group("Effects - Special")
 @export var extra_shop_items: int = 0           # Additional shop slots
 @export var reroll_cost_reduction: int = 0      # Flat reduction to reroll cost
+@export var execute_threshold: float = 0.0      # HP % threshold for execute damage (e.g., 0.3 = 30%)
+@export var execute_damage_mult: float = 0.0    # Damage multiplier when enemy below threshold (e.g., 2.0 = 2x)
+@export var interest_gold_threshold: int = 0    # Gold threshold for interest (e.g., 500)
+@export var interest_bonus: int = 0             # Bonus gold at wave end if above threshold
 
 
 ## Get artifact cost

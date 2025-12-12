@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3 uid="uid://aexecstone001"]
+
+[ext_resource type="Script" path="res://scripts/data/artifact_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/blood_rune.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "executioners_stone"
+display_name = "Executioner's Stone"
+description = "A crimson whetstone that smells of iron. Enemies below 30% HP take DOUBLE damage."
+icon_texture = ExtResource("2_icon")
+rarity = 2
+base_cost = 400
+execute_threshold = 0.3
+execute_damage_mult = 2.0

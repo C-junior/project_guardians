@@ -314,6 +314,12 @@ func _on_ability_ready() -> void:
 	tween.tween_property(ability_ready_indicator, "modulate:a", 0.5, 0.5)
 
 
+## Force ability to be ready (used by Battle Horn consumable)
+func make_ability_ready() -> void:
+	ability_timer.stop()
+	_on_ability_ready()
+
+
 func use_ability() -> void:
 	if not ability_ready:
 		return

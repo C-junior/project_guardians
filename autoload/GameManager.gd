@@ -136,6 +136,11 @@ func add_gold(amount: int) -> void:
 	for artifact in active_artifacts:
 		if artifact.has_method("get_gold_multiplier"):
 			bonus_multiplier += artifact.get_gold_multiplier()
+	# Check for gold-boosting consumables (Gold Fever)
+	for consumable in active_consumables:
+		var gold_mult = consumable.get("gold_multiplier") if consumable.get("gold_multiplier") else 0.0
+		if gold_mult > 0:
+			bonus_multiplier += gold_mult
 	gold += int(amount * bonus_multiplier)
 
 
@@ -314,6 +319,34 @@ func _apply_interest_bonus() -> void:
 		if threshold > 0 and bonus > 0 and gold >= threshold:
 			gold += bonus
 			print("[GameManager] Interest bonus! +%d gold (had %d+)" % [bonus, threshold])
+
+
+## Consumable Effect Queries
+
+## Check if abilities should start ready (Battle Horn)
+func has_abilities_ready_consumable() -> bool:
+	for consumable in active_consumables:
+		if consumable.get("abilities_start_ready"):
+			return true
+	return false
+
+
+## Get enemy slow percent from consumables (Slow Time)
+func get_enemy_slow_from_consumables() -> float:
+	var total = 0.0
+	for consumable in active_consumables:
+		var slow = consumable.get("enemy_slow_percent") if consumable.get("enemy_slow_percent") else 0.0
+		total += slow
+	return total
+
+
+## Get crystal health boost from consumables (Stone Walls)
+func get_crystal_health_boost() -> float:
+	var total = 0.0
+	for consumable in active_consumables:
+		var boost = consumable.get("crystal_health_boost") if consumable.get("crystal_health_boost") else 0.0
+		total += boost
+	return total
 
 
 ## Inventory Management

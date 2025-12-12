@@ -195,6 +195,9 @@ func start_wave(wave_data: Resource) -> void:
 	wave_in_progress = true
 	wave_started.emit(wave_data.wave_number)
 	
+	# Apply consumable effects at wave start
+	_apply_consumable_effects()
+	
 	# Spawn enemies according to wave data
 	var spawn_sequence = wave_data.get_spawn_sequence()
 	for spawn_info in spawn_sequence:
@@ -205,6 +208,23 @@ func start_wave(wave_data: Resource) -> void:
 		var enemy_resource = _load_enemy_resource(spawn_info.enemy_id)
 		if enemy_resource:
 			spawn_enemy(enemy_resource)
+
+
+## Apply consumable effects when wave starts
+func _apply_consumable_effects() -> void:
+	# Stone Walls: temporary crystal health boost
+	var hp_boost = GameManager.get_crystal_health_boost()
+	if hp_boost > 0:
+		var bonus_hp = int(GameManager.crystal_max_health * hp_boost)
+		GameManager.crystal_health += bonus_hp
+		print("[Arena] Stone Walls active! +%d crystal HP" % bonus_hp)
+	
+	# Battle Horn: abilities start ready
+	if GameManager.has_abilities_ready_consumable():
+		for statue in GameManager.placed_statues:
+			if statue and is_instance_valid(statue) and statue.has_method("make_ability_ready"):
+				statue.make_ability_ready()
+		print("[Arena] Battle Horn active! All abilities ready!")
 
 
 func _load_enemy_resource(enemy_id: String) -> Resource:

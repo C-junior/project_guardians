@@ -92,6 +92,7 @@ func _on_gold_changed(new_gold: int) -> void:
 
 
 func _on_crystal_health_changed(current: int, max_hp: int) -> void:
+	var prev_health = health_bar.value
 	health_bar.max_value = max_hp
 	health_bar.value = current
 	health_label.text = "%d/%d" % [current, max_hp]
@@ -108,6 +109,10 @@ func _on_crystal_health_changed(current: int, max_hp: int) -> void:
 		var tween = create_tween().set_loops(3)
 		tween.tween_property(health_bar, "modulate:a", 0.5, 0.2)
 		tween.tween_property(health_bar, "modulate:a", 1.0, 0.2)
+	
+	# Screen edge flash when taking damage
+	if current < prev_health:
+		_show_damage_flash()
 
 
 func _on_wave_changed(wave: int) -> void:
@@ -216,3 +221,19 @@ func _process(_delta: float) -> void:
 				button.queue_free()
 				continue
 			_update_ability_button(button, statue)
+
+
+## Show red screen edge flash when crystal takes damage
+func _show_damage_flash() -> void:
+	# Create a red overlay for damage feedback
+	var flash = ColorRect.new()
+	flash.name = "DamageFlash"
+	flash.color = Color(1, 0, 0, 0.3)
+	flash.anchors_preset = Control.PRESET_FULL_RECT
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash)
+	
+	# Fade out quickly
+	var tween = create_tween()
+	tween.tween_property(flash, "color:a", 0.0, 0.3)
+	tween.tween_callback(flash.queue_free)

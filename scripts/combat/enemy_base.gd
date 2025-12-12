@@ -123,6 +123,11 @@ func _physics_process(delta: float) -> void:
 	if is_slowed:
 		actual_speed *= (1.0 - slow_amount)
 	
+	# Apply consumable slow (Slow Time)
+	var consumable_slow = GameManager.get_enemy_slow_from_consumables()
+	if consumable_slow > 0:
+		actual_speed *= (1.0 - consumable_slow)
+	
 	# Move along path
 	if path_follow:
 		path_follow.progress += actual_speed * delta
@@ -132,6 +137,7 @@ func _physics_process(delta: float) -> void:
 		# Check if reached end
 		if path_follow.progress_ratio >= 1.0:
 			_reach_crystal()
+
 
 
 func _update_status_effects(delta: float) -> void:

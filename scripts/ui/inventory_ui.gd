@@ -74,7 +74,21 @@ func refresh() -> void:
 			items = GameManager.get_inventory_items("consumables")
 			item_type_str = "consumables"
 	
-	empty_label.visible = items.is_empty()
+	# For consumables tab, show active ones first
+	if current_tab == Tab.CONSUMABLES and GameManager.active_consumables.size() > 0:
+		# Add label for active consumables
+		var active_label = Label.new()
+		active_label.text = "⚡ Queued for Next Wave:"
+		active_label.add_theme_font_size_override("font_size", 12)
+		active_label.add_theme_color_override("font_color", Color.YELLOW)
+		items_grid.add_child(active_label)
+		
+		for consumable in GameManager.active_consumables:
+			var card = _create_active_consumable_card(consumable)
+			if card:
+				items_grid.add_child(card)
+	
+	empty_label.visible = items.is_empty() and GameManager.active_consumables.is_empty()
 	
 	for entry in items:
 		var item_data = entry["data"]
@@ -182,6 +196,14 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 		place_btn.add_theme_font_size_override("font_size", 11)
 		place_btn.pressed.connect(_on_place_statue.bind(item_data, tier))
 		btn_hbox.add_child(place_btn)
+	
+	# Use button for consumables
+	if item_type == "consumables":
+		var use_btn = Button.new()
+		use_btn.text = "Use"
+		use_btn.add_theme_font_size_override("font_size", 11)
+		use_btn.pressed.connect(_on_use_consumable.bind(item_data))
+		btn_hbox.add_child(use_btn)
 	
 	return card
 
@@ -295,6 +317,74 @@ func _hide_detail_panel() -> void:
 	selected_item_data = null
 
 
+## Create a card for active (queued) consumables
+func _create_active_consumable_card(consumable_data: Resource) -> Control:
+	if not consumable_data:
+		return null
+	
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(120, 80)
+	
+	# Yellow border for active
+	var stylebox = StyleBoxFlat.new()
+	stylebox.bg_color = Color(0.2, 0.2, 0.1, 0.95)
+	stylebox.set_border_width_all(3)
+	stylebox.border_color = Color.YELLOW
+	stylebox.set_corner_radius_all(8)
+	card.add_theme_stylebox_override("panel", stylebox)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	card.add_child(vbox)
+	
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 5)
+	margin.add_theme_constant_override("margin_right", 5)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 5)
+	vbox.add_child(margin)
+	
+	var inner_vbox = VBoxContainer.new()
+	inner_vbox.add_theme_constant_override("separation", 4)
+	margin.add_child(inner_vbox)
+	
+	# Name
+	var name_label = Label.new()
+	name_label.text = consumable_data.display_name if consumable_data.display_name else "Consumable"
+	name_label.add_theme_font_size_override("font_size", 10)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	inner_vbox.add_child(name_label)
+	
+	# Active indicator
+	var active_label = Label.new()
+	active_label.text = "⚡ ACTIVE"
+	active_label.add_theme_font_size_override("font_size", 9)
+	active_label.add_theme_color_override("font_color", Color.YELLOW)
+	active_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	inner_vbox.add_child(active_label)
+	
+	# Cancel button
+	var cancel_btn = Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.add_theme_font_size_override("font_size", 9)
+	cancel_btn.pressed.connect(_on_cancel_consumable.bind(consumable_data))
+	inner_vbox.add_child(cancel_btn)
+	
+	return card
+
+
+func _on_cancel_consumable(consumable_data: Resource) -> void:
+	# Remove from active and return to inventory
+	for i in range(GameManager.active_consumables.size()):
+		var active = GameManager.active_consumables[i]
+		if active == consumable_data or (active.get("id") and consumable_data.get("id") and active.id == consumable_data.id):
+			GameManager.active_consumables.remove_at(i)
+			GameManager.add_to_inventory(consumable_data, "consumables")
+			refresh()
+			print("[Inventory] Consumable cancelled: %s" % consumable_data.display_name)
+			return
+
+
 func _clear_items() -> void:
 	for child in items_grid.get_children():
 		child.queue_free()
@@ -328,6 +418,29 @@ func _on_close_pressed() -> void:
 
 func _on_place_statue(statue_data: Resource, tier: int = 0) -> void:
 	place_statue_requested.emit(statue_data, tier)
+
+
+func _on_use_consumable(consumable_data: Resource) -> void:
+	if not consumable_data:
+		return
+	
+	# Check if already activated this wave
+	for active in GameManager.active_consumables:
+		if active == consumable_data or (active.get("id") and consumable_data.get("id") and active.id == consumable_data.id):
+			print("[Inventory] Consumable already active!")
+			return
+	
+	# Activate for next wave
+	GameManager.active_consumables.push_back(consumable_data)
+	
+	# Remove from inventory
+	GameManager.remove_from_inventory(consumable_data, "consumables")
+	
+	# Visual feedback
+	print("[Inventory] Consumable activated: %s" % consumable_data.display_name)
+	
+	# Refresh UI
+	refresh()
 
 
 func _on_inventory_changed() -> void:

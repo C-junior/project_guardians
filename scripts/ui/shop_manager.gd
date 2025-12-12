@@ -65,7 +65,19 @@ func _load_item_pools() -> void:
 					artifact_pool.append(res)
 			file_name = artifact_dir.get_next()
 	
-	print("[Shop] Loaded %d statues, %d artifacts" % [statue_pool.size(), artifact_pool.size()])
+	# Load all consumable resources
+	var consumable_dir = DirAccess.open("res://resources/consumables/")
+	if consumable_dir:
+		consumable_dir.list_dir_begin()
+		var file_name = consumable_dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".tres"):
+				var res = load("res://resources/consumables/" + file_name)
+				if res:
+					consumable_pool.append(res)
+			file_name = consumable_dir.get_next()
+	
+	print("[Shop] Loaded %d statues, %d artifacts, %d consumables" % [statue_pool.size(), artifact_pool.size(), consumable_pool.size()])
 
 
 ## Open shop for preparation phase
@@ -123,8 +135,14 @@ func _generate_shop_items() -> void:
 				var statue = statue_pool[randi() % statue_pool.size()]
 				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
 		else:
-			# Consumable - create inline since we don't have pre-made ones
-			item_data = _generate_random_consumable()
+			# Consumable - use actual resource
+			if consumable_pool.size() > 0:
+				var consumable = consumable_pool[randi() % consumable_pool.size()]
+				item_data = {"resource": consumable, "type": "consumable", "cost": consumable.base_cost}
+			else:
+				# Fallback to statue if no consumables
+				var statue = statue_pool[randi() % statue_pool.size()]
+				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
 		
 		if item_data.size() > 0:
 			current_items.append(item_data)
@@ -165,12 +183,11 @@ func _on_item_purchased(item_data: Dictionary) -> void:
 			GameManager.add_artifact(item_data.resource)
 			item_purchased.emit(item_data.resource, "artifact")
 		"consumable":
-			# Consumables are not Resources - just track the effect data
-			if item_data.data:
-				# Store as variant to avoid type mismatch
-				var consumable_data = item_data.data
-				GameManager.active_consumables.push_back(consumable_data)
-			item_purchased.emit(null, "consumable")
+			# Only add to inventory - player will activate from inventory UI
+			if item_data.resource:
+				GameManager.add_to_inventory(item_data.resource, "consumables")
+				print("[Shop] Consumable added to inventory: %s" % item_data.resource.display_name)
+			item_purchased.emit(item_data.resource, "consumable")
 	
 	# Regenerate shop to remove purchased item
 	_generate_shop_items()

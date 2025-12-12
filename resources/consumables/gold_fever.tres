@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3 uid="uid://cgoldfever001"]
+
+[ext_resource type="Script" path="res://scripts/data/consumable_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/soul_gem.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "gold_fever"
+display_name = "Gold Fever"
+description = "A mystical elixir that makes gold shimmer brighter. Earn DOUBLE gold this wave!"
+icon_texture = ExtResource("2_icon")
+base_cost = 150
+gold_multiplier = 1.0

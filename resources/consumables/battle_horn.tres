@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3 uid="uid://cbattlehorn001"]
+
+[ext_resource type="Script" path="res://scripts/data/consumable_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/thunder_bolt.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "battle_horn"
+display_name = "Battle Horn"
+description = "A war horn that echoes with ancient power. All statue abilities start fully charged."
+icon_texture = ExtResource("2_icon")
+base_cost = 100
+abilities_start_ready = true

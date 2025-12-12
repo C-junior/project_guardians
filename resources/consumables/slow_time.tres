@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3 uid="uid://cslowtime001"]
+
+[ext_resource type="Script" path="res://scripts/data/consumable_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/frost_shard.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "slow_time"
+display_name = "Slow Time"
+description = "A chrono crystal that distorts time. All enemies move 25% slower this wave."
+icon_texture = ExtResource("2_icon")
+base_cost = 100
+enemy_slow_percent = 0.25

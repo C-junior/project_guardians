@@ -12,6 +12,7 @@ extends Node2D
 @onready var statue_selection_ui: CanvasLayer = $StatueSelectionUI
 @onready var inventory_ui: CanvasLayer = $InventoryUI
 @onready var ascension_ui: CanvasLayer = $AscensionUI
+@onready var blessing_selection_ui: CanvasLayer = $BlessingSelectionUI
 
 # Game over UI
 @onready var waves_survived_label: Label = $GameOverScreen/Panel/VBox/WavesSurvivedLabel
@@ -59,6 +60,10 @@ func _ready() -> void:
 	if ascension_ui:
 		ascension_ui.ascension_completed.connect(_on_ascension_completed)
 		ascension_ui.ascension_cancelled.connect(_on_ascension_cancelled)
+	
+	# Connect blessing selection UI
+	if blessing_selection_ui:
+		blessing_selection_ui.blessing_selected.connect(_on_blessing_selected)
 	
 	# Connect HUD signals
 	if hud:
@@ -117,11 +122,25 @@ func _show_setup() -> void:
 	if game_over_screen:
 		game_over_screen.visible = false
 	
+	# If no blessing chosen yet, show blessing selection first
+	if not GameManager.current_blessing and blessing_selection_ui:
+		blessing_selection_ui.open()
+		return
+	
 	# Show statue selection UI
 	if statue_selection_ui:
 		statue_selection_ui.open()
 	else:
 		# Fallback: skip selection and use random statue
+		_use_fallback_starting_statue()
+
+
+func _on_blessing_selected(blessing: Resource) -> void:
+	print("[Main] Blessing chosen: %s" % blessing.display_name)
+	# After blessing, proceed to statue selection
+	if statue_selection_ui:
+		statue_selection_ui.open()
+	else:
 		_use_fallback_starting_statue()
 
 
@@ -299,6 +318,33 @@ func _input(event: InputEvent) -> void:
 					shop_ui.visible = true
 				if inventory_ui:
 					inventory_ui.visible = true
+	
+	# Handle upgrade application to placed statues
+	if GameManager.pending_upgrade and event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			# Check if clicked on a statue
+			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
+			if clicked_statue:
+				clicked_statue.apply_upgrade(GameManager.pending_upgrade)
+				GameManager.pending_upgrade = null
+				print("[Main] Upgrade applied!")
+				# Return to shop
+				if shop_ui:
+					shop_ui.visible = true
+		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			# Cancel upgrade
+			GameManager.pending_upgrade = null
+			print("[Main] Upgrade cancelled")
+
+
+func _get_statue_at_position(pos: Vector2) -> Node:
+	# Find statue at click position
+	for statue in GameManager.placed_statues:
+		if is_instance_valid(statue):
+			var distance = statue.position.distance_to(pos)
+			if distance < 40:  # Click radius
+				return statue
+	return null
 
 
 func _exit_placement_mode() -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://main001"]
+[gd_scene load_steps=10 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" uid="uid://ijmr5wlpupyw" path="res://scripts/main.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://rena001" path="res://scenes/combat/arena.tscn" id="2_arena"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/statue_selection_ui.tscn" id="6_statue_selection"]
 [ext_resource type="PackedScene" path="res://scenes/ui/inventory_ui.tscn" id="7_inventory"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ascension_ui.tscn" id="8_ascension"]
+[ext_resource type="PackedScene" uid="uid://dvg0rj0582441" path="res://scenes/ui/blessing_selection_ui.tscn" id="9_b1x3f"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_script")
@@ -95,3 +96,5 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 18
 text = "Main Menu"
+
+[node name="BlessingSelectionUI" parent="." instance=ExtResource("9_b1x3f")]

@@ -28,6 +28,7 @@ var current_target: Node = null
 var ability_ready: bool = false
 var is_attacking: bool = false
 var in_blade_storm: bool = false  # For Shadow Dancer ability
+var applied_upgrades: Array = []   # Track applied upgrades
 
 # Modifiers from artifacts
 var damage_modifier: float = 1.0
@@ -318,6 +319,59 @@ func _on_ability_ready() -> void:
 func make_ability_ready() -> void:
 	ability_timer.stop()
 	_on_ability_ready()
+
+
+## Apply an upgrade to this statue
+func apply_upgrade(upgrade: Resource) -> void:
+	if not upgrade:
+		return
+	
+	# Add to tracking
+	applied_upgrades.append(upgrade)
+	
+	# Apply all effects
+	if upgrade.get("damage_multiplier") and upgrade.damage_multiplier > 0:
+		damage_modifier += upgrade.damage_multiplier
+		print("[Statue] %s damage +%.0f%%" % [statue_data.display_name, upgrade.damage_multiplier * 100])
+	
+	if upgrade.get("attack_speed_multiplier") and upgrade.attack_speed_multiplier > 0:
+		attack_speed_modifier += upgrade.attack_speed_multiplier
+		# Update attack timer
+		if attack_timer:
+			attack_timer.wait_time = 1.0 / (attack_speed * attack_speed_modifier)
+		print("[Statue] %s attack speed +%.0f%%" % [statue_data.display_name, upgrade.attack_speed_multiplier * 100])
+	
+	if upgrade.get("range_bonus") and upgrade.range_bonus > 0:
+		range_modifier += upgrade.range_bonus
+		# Update attack range collision
+		var attack_collision = get_node_or_null("AttackRange/CollisionShape")
+		if attack_collision and attack_collision.shape:
+			attack_collision.shape.radius = attack_range + range_modifier
+		if range_indicator:
+			_setup_range_indicator()
+		print("[Statue] %s range +%.0f" % [statue_data.display_name, upgrade.range_bonus])
+	
+	if upgrade.get("health_multiplier") and upgrade.health_multiplier > 0:
+		var bonus_hp = int(max_health * upgrade.health_multiplier)
+		max_health += bonus_hp
+		current_health += bonus_hp
+		_update_health_bar()
+		print("[Statue] %s HP +%d" % [statue_data.display_name, bonus_hp])
+	
+	if upgrade.get("cooldown_reduction") and upgrade.cooldown_reduction > 0:
+		cooldown_modifier -= upgrade.cooldown_reduction
+		cooldown_modifier = max(0.1, cooldown_modifier)
+		print("[Statue] %s cooldown -%.0f%%" % [statue_data.display_name, upgrade.cooldown_reduction * 100])
+	
+	# Visual feedback - flash gold
+	_flash_upgrade_effect()
+
+
+func _flash_upgrade_effect() -> void:
+	var original_modulate = modulate
+	var tween = create_tween()
+	tween.tween_property(self, "modulate", Color.GOLD, 0.2)
+	tween.tween_property(self, "modulate", original_modulate, 0.3)
 
 
 func use_ability() -> void:

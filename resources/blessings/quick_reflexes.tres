@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BlessingData" load_steps=2 format=3 uid="uid://cquick001"]
+
+[ext_resource type="Script" path="res://scripts/data/blessing_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "quick_reflexes"
+display_name = "Quick Reflexes"
+description = "Lightning flows through all your statues. Abilities cooldown 25% faster."
+cooldown_reduction = 0.25

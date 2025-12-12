@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BlessingData" load_steps=2 format=3 uid="uid://cwarrior001"]
+
+[ext_resource type="Script" path="res://scripts/data/blessing_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "warriors_resolve"
+display_name = "Warrior's Resolve"
+description = "Begin your journey with The Sentinel, a stalwart guardian."
+starting_statue_id = "knight"

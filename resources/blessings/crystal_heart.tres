@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BlessingData" load_steps=2 format=3 uid="uid://ccrystal001"]
+
+[ext_resource type="Script" path="res://scripts/data/blessing_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "crystal_heart"
+display_name = "Crystal Heart"
+description = "Your sacred crystal pulses with divine protection. +75% max health."
+crystal_health_bonus = 0.75

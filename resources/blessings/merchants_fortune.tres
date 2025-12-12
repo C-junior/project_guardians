@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BlessingData" load_steps=2 format=3 uid="uid://cmerchant001"]
+
+[ext_resource type="Script" path="res://scripts/data/blessing_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "merchants_fortune"
+display_name = "Merchant's Fortune"
+description = "The gods of commerce smile upon you. Start with double gold (300g)."
+extra_starting_gold = 150

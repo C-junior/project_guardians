@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3 uid="uid://cfortification001"]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "fortification"
+display_name = "Fortification"
+description = "Reinforces the statue's stone body. +50% max health."
+base_cost = 200
+health_multiplier = 0.50

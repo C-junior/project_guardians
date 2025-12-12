@@ -269,32 +269,42 @@ func load_meta_progression() -> void:
 func get_damage_multiplier() -> float:
 	var mult = 1.0
 	for artifact in active_artifacts:
-		if artifact.has_method("get_damage_multiplier"):
-			mult += artifact.get_damage_multiplier()
+		var dmg = artifact.get("damage_multiplier") if artifact.get("damage_multiplier") else 0.0
+		if dmg > 0:
+			mult += dmg
 	return mult
 
 
 func get_attack_speed_multiplier() -> float:
 	var mult = 1.0
 	for artifact in active_artifacts:
-		if artifact.has_method("get_attack_speed_multiplier"):
-			mult += artifact.get_attack_speed_multiplier()
+		var speed = artifact.get("attack_speed_multiplier") if artifact.get("attack_speed_multiplier") else 0.0
+		if speed > 0:
+			mult += speed
 	return mult
 
 
 func get_cooldown_multiplier() -> float:
 	var mult = 1.0
+	# Check artifacts for cooldown reduction
 	for artifact in active_artifacts:
-		if artifact.has_method("get_cooldown_multiplier"):
-			mult -= artifact.get_cooldown_reduction()  # Reduction is subtracted
+		var reduction = artifact.get("cooldown_reduction") if artifact.get("cooldown_reduction") else 0.0
+		if reduction > 0:
+			mult -= reduction
+	# Check blessing for cooldown reduction
+	if current_blessing:
+		var blessing_reduction = current_blessing.get("cooldown_reduction") if current_blessing.get("cooldown_reduction") else 0.0
+		if blessing_reduction > 0:
+			mult -= blessing_reduction
 	return max(0.1, mult)  # Minimum 10% cooldown
 
 
 func get_range_bonus() -> float:
 	var bonus = 0.0
 	for artifact in active_artifacts:
-		if artifact.has_method("get_range_bonus"):
-			bonus += artifact.get_range_bonus()
+		var range_b = artifact.get("range_bonus") if artifact.get("range_bonus") else 0.0
+		if range_b > 0:
+			bonus += range_b
 	return bonus
 
 

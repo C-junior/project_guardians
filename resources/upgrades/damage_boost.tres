@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3 uid="uid://cdamageboost001"]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "damage_boost"
+display_name = "Damage Boost"
+description = "Empowers the statue with raw destructive force. +25% damage to all attacks."
+base_cost = 250
+damage_multiplier = 0.25

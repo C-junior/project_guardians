@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BlessingData" load_steps=2 format=3 uid="uid://cancient001"]
+
+[ext_resource type="Script" path="res://scripts/data/blessing_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "ancient_power"
+display_name = "Ancient Power"
+description = "Ancient magic reduces the cost of your first purchase by half."
+first_purchase_discount = 0.5

@@ -21,6 +21,7 @@ extends Node2D
 
 # Statue placement state
 var pending_statue_to_place: Resource = null
+var pending_statue_tier: int = 0  # Track tier for placement
 var is_initial_placement: bool = false  # True when placing starting statue
 
 
@@ -205,9 +206,10 @@ func _on_item_purchased(item: Resource, item_type: String) -> void:
 
 
 ## Called when player wants to place a statue from inventory
-func _on_inventory_place_statue(statue_data: Resource) -> void:
+func _on_inventory_place_statue(statue_data: Resource, tier: int = 0) -> void:
 	if GameManager.has_in_inventory(statue_data, "statues"):
 		pending_statue_to_place = statue_data
+		pending_statue_tier = tier
 		is_initial_placement = false
 		
 		# Hide inventory during placement
@@ -250,13 +252,15 @@ func _input(event: InputEvent) -> void:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			var grid_pos = arena.world_to_grid(get_global_mouse_position())
 			if arena.is_cell_empty(grid_pos):
-				arena.place_statue(pending_statue_to_place, grid_pos)
+				# Place with correct tier
+				arena.place_statue(pending_statue_to_place, grid_pos, pending_statue_tier)
 				
-				# If placing from inventory, remove from inventory
+				# If placing from inventory, remove from inventory with tier
 				if not is_initial_placement:
-					GameManager.remove_from_inventory(pending_statue_to_place, "statues")
+					GameManager.remove_from_inventory(pending_statue_to_place, "statues", pending_statue_tier)
 				
 				pending_statue_to_place = null
+				pending_statue_tier = 0
 				_exit_placement_mode()
 				
 				# After placing, return to arena view (don't auto-start wave)

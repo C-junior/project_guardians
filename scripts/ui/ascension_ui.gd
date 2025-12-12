@@ -495,8 +495,8 @@ func _on_ascend_pressed() -> void:
 	# Determine result data (handle awakened sprites)
 	var evolved_data = _get_evolved_statue_data(base_statue_data)
 	
-	# Add 1 evolved statue to inventory (tier 1)
-	GameManager.add_to_inventory(evolved_data, "statues")
+	# Add 1 evolved statue to inventory with tier=1 (Enhanced)
+	GameManager.add_to_inventory(evolved_data, "statues", 1)
 	
 	print("[Ascension] Upgraded 3x %s into 1x %s! (combined from inventory + field)" % [base_statue_data.get("display_name"), evolved_data.get("display_name")])
 	

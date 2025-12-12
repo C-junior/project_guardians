@@ -57,7 +57,7 @@ var current_blessing: Resource = null
 var selected_starting_statue: Resource = null
 
 # Player Inventory (persists during run)
-# Format: { "statues": [{"data": Resource, "count": int}], "artifacts": [...], "consumables": [...] }
+# Format: { "statues": [{"data": Resource, "count": int, "tier": int}], "artifacts": [...], "consumables": [...] }
 var player_inventory: Dictionary = {
 	"statues": [],
 	"artifacts": [],
@@ -275,32 +275,36 @@ func get_range_bonus() -> float:
 
 
 ## Inventory Management
-func add_to_inventory(item: Resource, item_type: String) -> void:
+## tier parameter is optional (default 0 for base tier)
+func add_to_inventory(item: Resource, item_type: String, tier: int = 0) -> void:
 	if not item:
 		return
 	
 	var inventory_list = player_inventory.get(item_type, [])
 	
-	# Check if item already exists (for stackable items like statues)
+	# Check if item already exists at same tier (for stackable items like statues)
 	for entry in inventory_list:
 		var entry_id = entry["data"].get("id") if entry["data"] else ""
 		var item_id = item.get("id") if item else ""
-		if entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id):
+		var entry_tier = entry.get("tier", 0)
+		if (entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id)) and entry_tier == tier:
 			entry["count"] += 1
 			inventory_changed.emit()
 			var name_str = item.get("display_name") if item.get("display_name") else str(item)
-			print("[GameManager] Added %s to inventory (count: %d)" % [name_str, entry["count"]])
+			var tier_name = EvolutionManager.get_tier_name(tier) if tier > 0 else "Base"
+			print("[GameManager] Added %s (%s) to inventory (count: %d)" % [name_str, tier_name, entry["count"]])
 			return
 	
-	# New item
-	inventory_list.append({"data": item, "count": 1})
+	# New item entry
+	inventory_list.append({"data": item, "count": 1, "tier": tier})
 	player_inventory[item_type] = inventory_list
 	inventory_changed.emit()
 	var name_str = item.get("display_name") if item.get("display_name") else str(item)
-	print("[GameManager] Added new %s to inventory" % [name_str])
+	var tier_name = EvolutionManager.get_tier_name(tier) if tier > 0 else "Base"
+	print("[GameManager] Added new %s (%s) to inventory" % [name_str, tier_name])
 
-
-func remove_from_inventory(item: Resource, item_type: String) -> bool:
+## Remove from inventory (optionally specify tier, -1 means any tier)
+func remove_from_inventory(item: Resource, item_type: String, tier: int = -1) -> bool:
 	if not item:
 		return false
 	
@@ -310,12 +314,15 @@ func remove_from_inventory(item: Resource, item_type: String) -> bool:
 	for i in range(inventory_list.size()):
 		var entry = inventory_list[i]
 		var entry_id = entry["data"].get("id") if entry["data"] else ""
+		var entry_tier = entry.get("tier", 0)
+		# Match by ID and optionally by tier (-1 = any tier)
 		if entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id):
-			entry["count"] -= 1
-			if entry["count"] <= 0:
-				inventory_list.remove_at(i)
-			inventory_changed.emit()
-			return true
+			if tier == -1 or entry_tier == tier:
+				entry["count"] -= 1
+				if entry["count"] <= 0:
+					inventory_list.remove_at(i)
+				inventory_changed.emit()
+				return true
 	
 	return false
 

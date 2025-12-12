@@ -162,7 +162,14 @@ func spawn_enemy(enemy_data: Resource) -> Node2D:
 
 
 func _on_enemy_died(gold_reward: int, enemy: Node) -> void:
+	var enemy_pos = enemy.position if enemy else Vector2.ZERO
 	active_enemies.erase(enemy)
+	
+	# Notify HUD for gold animation and kill counter
+	var hud = get_node_or_null("/root/Main/HUD")
+	if hud and hud.has_method("on_enemy_killed"):
+		hud.on_enemy_killed(gold_reward, enemy_pos)
+	
 	_check_wave_complete()
 
 

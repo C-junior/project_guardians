@@ -45,7 +45,11 @@ func _apply_setup(data: Dictionary) -> void:
 		"artifact":
 			_setup_artifact(data.resource)
 		"consumable":
-			_setup_consumable(data.get("data", {}))
+			# Pass resource if available, otherwise fall back to data dict
+			if data.resource:
+				_setup_consumable(data.resource)
+			else:
+				_setup_consumable(data.get("data", {}))
 	
 	cost_label.text = "💰 %d" % item_cost
 	update_affordability(GameManager.gold)
@@ -66,6 +70,15 @@ func _setup_statue(statue: Resource) -> void:
 	if type_label:
 		type_label.text = "Statue • %s" % rarity_names[statue.rarity]
 		type_label.modulate = _get_rarity_color(statue.rarity)
+	
+	# Add tooltip with stats
+	tooltip_text = "%s\n\nDMG: %.0f | SPD: %.2f | RNG: %.0f\n%s" % [
+		statue.display_name,
+		statue.base_damage,
+		statue.attack_speed,
+		statue.attack_range,
+		statue.ability_name if statue.ability_name else ""
+	]
 	
 	# Rarity border color
 	var stylebox = StyleBoxFlat.new()
@@ -90,6 +103,9 @@ func _setup_artifact(artifact: Resource) -> void:
 		type_label.text = "Artifact • %s" % rarity_names[artifact.rarity]
 		type_label.modulate = _get_rarity_color(artifact.rarity)
 	
+	# Add tooltip with effect description
+	tooltip_text = "%s\n\n%s" % [artifact.display_name, artifact.description]
+	
 	var stylebox = StyleBoxFlat.new()
 	stylebox.set_border_width_all(2)
 	stylebox.border_color = Color(0.6, 0.3, 0.8)  # Purple for artifacts
@@ -98,13 +114,26 @@ func _setup_artifact(artifact: Resource) -> void:
 	add_theme_stylebox_override("panel", stylebox)
 
 
-func _setup_consumable(data: Dictionary) -> void:
-	# Consumables use inline data, no texture needed
+func _setup_consumable(data: Variant) -> void:
+	# Handle both Dictionary (old) and Resource (new) data
+	var item_name: String = ""
+	var item_desc: String = ""
+	
+	if data is Resource:
+		item_name = data.display_name if data.display_name else "Consumable"
+		item_desc = data.description if data.description else ""
+	else:
+		item_name = data.get("name", "Consumable")
+		item_desc = data.get("desc", "")
+	
 	if name_label:
-		name_label.text = data.get("name", "Consumable")
+		name_label.text = item_name
 	if type_label:
-		type_label.text = data.get("desc", "")
+		type_label.text = "Single Use"
 		type_label.modulate = Color(0.4, 0.8, 0.4)
+	
+	# Add tooltip
+	tooltip_text = "%s\n\n%s" % [item_name, item_desc]
 	
 	var stylebox = StyleBoxFlat.new()
 	stylebox.set_border_width_all(2)

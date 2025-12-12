@@ -22,6 +22,9 @@ signal start_wave_button_pressed()
 @onready var shop_button: Button = $ActionButtons/ShopButton
 @onready var start_wave_button: Button = $ActionButtons/StartWaveButton
 
+# Kill counter
+var kills_this_wave: int = 0
+
 # Ability button scene
 var ability_button_scene: PackedScene
 
@@ -116,7 +119,10 @@ func _on_crystal_health_changed(current: int, max_hp: int) -> void:
 
 
 func _on_wave_changed(wave: int) -> void:
-	wave_label.text = "Wave %d" % wave
+	wave_label.text = "Wave %d | Kills: %d" % [wave, kills_this_wave]
+	
+	# Reset kill counter for new wave
+	kills_this_wave = 0
 	
 	# Show wave start announcement
 	if wave > 0:
@@ -187,11 +193,32 @@ func _toggle_pause() -> void:
 
 
 func show_wave_start(wave: int) -> void:
-	$WaveStartPanel/VBox/WaveStartLabel.text = "Wave %d" % wave
+	# Get wave preview
+	var preview = WaveData.get_wave_preview(wave)
+	var is_boss_wave = (wave % 5 == 0)
+	
+	# Update wave start label with preview
+	if is_boss_wave:
+		$WaveStartPanel/VBox/WaveStartLabel.text = "⚔️ BOSS WAVE %d ⚔️" % wave
+		$WaveStartPanel/VBox/WaveStartLabel.add_theme_color_override("font_color", Color.ORANGE)
+	else:
+		$WaveStartPanel/VBox/WaveStartLabel.text = "Wave %d" % wave
+		$WaveStartPanel/VBox/WaveStartLabel.remove_theme_color_override("font_color")
+	
+	# Add preview label if it doesn't exist
+	var preview_label = $WaveStartPanel/VBox.get_node_or_null("PreviewLabel")
+	if not preview_label:
+		preview_label = Label.new()
+		preview_label.name = "PreviewLabel"
+		preview_label.add_theme_font_size_override("font_size", 14)
+		preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		$WaveStartPanel/VBox.add_child(preview_label)
+	preview_label.text = preview
+	
 	wave_start_panel.visible = true
 	
 	var tween = create_tween()
-	tween.tween_interval(1.5)
+	tween.tween_interval(2.0)
 	tween.tween_property(wave_start_panel, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(func(): 
 		wave_start_panel.visible = false
@@ -237,3 +264,45 @@ func _show_damage_flash() -> void:
 	var tween = create_tween()
 	tween.tween_property(flash, "color:a", 0.0, 0.3)
 	tween.tween_callback(flash.queue_free)
+
+
+## Called when enemy is killed - shows gold float and updates kill counter
+func on_enemy_killed(gold_amount: int, world_pos: Vector2) -> void:
+	# Increment kill counter
+	kills_this_wave += 1
+	wave_label.text = "Wave %d | Kills: %d" % [GameManager.current_wave, kills_this_wave]
+	
+	# Show floating gold number that floats toward gold counter
+	_show_gold_float(gold_amount, world_pos)
+
+
+## Show floating gold number animation
+func _show_gold_float(amount: int, world_pos: Vector2) -> void:
+	var label = Label.new()
+	label.text = "+%d 💰" % amount
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", Color.GOLD)
+	label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	
+	# Convert world position to screen position
+	var viewport = get_viewport()
+	var camera = viewport.get_camera_2d()
+	var screen_pos: Vector2
+	if camera:
+		screen_pos = world_pos - camera.get_screen_center_position() + viewport.get_visible_rect().size / 2
+	else:
+		screen_pos = world_pos
+	
+	label.position = screen_pos
+	label.z_index = 100
+	add_child(label)
+	
+	# Float up and fade out
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 50, 0.8)
+	tween.tween_property(label, "modulate:a", 0.0, 0.8)
+	tween.set_parallel(false)
+	tween.tween_callback(label.queue_free)

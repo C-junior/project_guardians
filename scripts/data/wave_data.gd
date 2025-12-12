@@ -63,19 +63,37 @@ static func generate_wave(wave_num: int) -> WaveData:
 		# Mid: mixed + trolls
 		wave.spawn_groups.append({"enemy_id": "goblin", "count": base_count / 3, "delay": 0.0})
 		wave.spawn_groups.append({"enemy_id": "orc", "count": base_count / 3, "delay": 0.0})
-		wave.spawn_groups.append({"enemy_id": "troll", "count": base_count / 6, "delay": 0.0})
+		wave.spawn_groups.append({"enemy_id": "slime", "count": base_count / 6, "delay": 0.0})
 	else:
 		# Late: full mix
 		wave.spawn_groups.append({"enemy_id": "goblin", "count": base_count / 4, "delay": 0.0})
 		wave.spawn_groups.append({"enemy_id": "orc", "count": base_count / 4, "delay": 0.0})
-		wave.spawn_groups.append({"enemy_id": "troll", "count": base_count / 6, "delay": 0.0})
+		wave.spawn_groups.append({"enemy_id": "slime", "count": base_count / 6, "delay": 0.0})
 		wave.spawn_groups.append({"enemy_id": "necromancer", "count": base_count / 8, "delay": 0.0})
 	
 	# Add boss if boss wave
 	if wave.is_boss_wave:
-		var boss_id = "goblin_boss"
+		var boss_id = "goblin_boss"  # Wave 5: Goblin King
 		if wave_num >= 10:
-			boss_id = "orc_boss"
+			boss_id = "orc_boss"  # Wave 10+: Orc Warlord
 		wave.spawn_groups.append({"enemy_id": boss_id, "count": 1, "delay": 2.0})
 	
 	return wave
+
+
+## Get readable preview of wave composition
+static func get_wave_preview(wave_num: int) -> String:
+	var wave = generate_wave(wave_num)
+	var preview_parts: Array[String] = []
+	
+	for group in wave.spawn_groups:
+		var enemy_id = group.get("enemy_id", "")
+		var count = group.get("count", 0)
+		if count > 0 and enemy_id != "":
+			var enemy_name = enemy_id.capitalize().replace("_", " ")
+			preview_parts.append("%d %s" % [count, enemy_name])
+	
+	if wave.is_boss_wave:
+		return "⚔️ BOSS WAVE: " + ", ".join(preview_parts)
+	else:
+		return ", ".join(preview_parts)

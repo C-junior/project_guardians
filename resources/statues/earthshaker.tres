@@ -23,3 +23,6 @@ can_attack_flying = false
 can_attack_ground = true
 projectile_speed = 0.0
 is_melee = true
+effect_color = Color(0.6, 0.4, 0.2, 1)
+secondary_effect_color = Color(0.5, 0.35, 0.2, 1)
+has_aura = false

@@ -34,6 +34,9 @@ class_name StatueData
 @export var projectile_texture: Texture2D
 @export var projectile_speed: float = 400.0
 @export var is_melee: bool = false
+@export var effect_color: Color = Color(1.0, 1.0, 1.0)  # Primary effect color
+@export var secondary_effect_color: Color = Color(0.8, 0.8, 0.8)  # Secondary effect color
+@export var has_aura: bool = false  # Show persistent aura
 
 
 ## Calculate stats for a given evolution tier (0-3)

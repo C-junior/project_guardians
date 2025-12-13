@@ -271,30 +271,58 @@ func _attack(target: Node) -> void:
 		if execute_mult > 1.0:
 			final_damage *= execute_mult
 	
+	# Get effect color from statue data
+	var effect_color = statue_data.effect_color if statue_data.get("effect_color") else Color.WHITE
+	
 	if statue_data.is_melee:
-		# Melee: instant damage
+		# Melee: instant damage with impact effect
 		target.take_damage(final_damage, self)
+		# Melee impact effect
+		if arena:
+			EffectsManager.create_impact(arena, target.position, effect_color, 6)
 	else:
-		# Ranged: spawn projectile
+		# Ranged: spawn visual projectile with trail
 		_spawn_projectile(target, final_damage)
+		# Muzzle flash effect
+		if arena:
+			EffectsManager.create_muzzle_flash(arena, position, effect_color)
 	
 	attacked.emit(target, final_damage)
 	
-	# Animation feedback
+	# Animation feedback - attack pulse
 	var tween = create_tween()
 	tween.tween_property(sprite, "scale", Vector2(0.55, 0.55), 0.05)
 	tween.tween_property(sprite, "scale", Vector2(0.5, 0.5), 0.1)
+	# Color flash on attack
+	tween.parallel().tween_property(sprite, "modulate", effect_color, 0.05)
+	tween.tween_property(sprite, "modulate", Color.WHITE, 0.1)
 
 
 func _spawn_projectile(target: Node, projectile_damage: float) -> void:
-	# Simple projectile - just deal damage after travel time
-	var distance = position.distance_to(target.position)
-	var travel_time = distance / statue_data.projectile_speed
+	# Visual projectile with trail effect
+	if not target or not is_instance_valid(target):
+		return
 	
-	await get_tree().create_timer(travel_time).timeout
+	var effect_color = statue_data.effect_color if statue_data.get("effect_color") else Color.WHITE
 	
-	if target and is_instance_valid(target):
-		target.take_damage(projectile_damage, self)
+	if arena:
+		# Create visual projectile that moves and deals damage on hit
+		EffectsManager.create_projectile_trail(
+			arena,
+			position,
+			target,
+			effect_color,
+			statue_data.projectile_speed,
+			projectile_damage,
+			self
+		)
+	else:
+		# Fallback: simple projectile
+		var distance = position.distance_to(target.position)
+		var travel_time = distance / statue_data.projectile_speed
+		await get_tree().create_timer(travel_time).timeout
+		if target and is_instance_valid(target):
+			target.take_damage(projectile_damage, self)
 
 
 ## Ability system
@@ -409,6 +437,14 @@ func _ability_shield_bash() -> void:
 	for enemy in enemies:
 		if enemy.has_method("apply_stun"):
 			enemy.apply_stun(2.0)
+	
+	# Visual effect: Yellow shockwave ring
+	if arena:
+		EffectsManager.create_shockwave(arena, position, Color(1.0, 0.9, 0.3), attack_range + 50, 0.4)
+	
+	# Screen shake effect
+	_screen_shake(0.15, 5.0)
+	
 	print("[Ability] Shield Bash - Stunned %d enemies" % enemies.size())
 
 
@@ -421,6 +457,11 @@ func _ability_chain_lightning() -> void:
 	
 	current_target.take_damage(chain_damage, self)
 	
+	# Visual: Lightning bolt to first target
+	var lightning_color = Color(0.4, 0.7, 1.0)
+	if arena:
+		EffectsManager.create_lightning(arena, position, current_target.position, lightning_color)
+	
 	# Chain to 3 more enemies
 	for i in range(3):
 		var last_hit = hit_enemies[-1]
@@ -428,6 +469,9 @@ func _ability_chain_lightning() -> void:
 		for enemy in nearby:
 			if enemy not in hit_enemies:
 				enemy.take_damage(chain_damage, self)
+				# Visual: chain lightning between enemies
+				if arena:
+					EffectsManager.create_lightning(arena, last_hit.position, enemy.position, lightning_color)
 				hit_enemies.append(enemy)
 				break
 	
@@ -441,6 +485,11 @@ func _ability_piercing_arrow() -> void:
 	var direction = (current_target.position - position).normalized()
 	var pierce_damage = damage * damage_modifier * 2.0
 	
+	# Visual: Golden arrow trail
+	var arrow_color = Color(1.0, 0.9, 0.4)
+	if arena:
+		EffectsManager.create_arrow_trail(arena, position, direction, arrow_color, 400.0)
+	
 	# Hit all enemies in a line
 	for enemy in arena.active_enemies:
 		if not enemy or not is_instance_valid(enemy):
@@ -449,6 +498,9 @@ func _ability_piercing_arrow() -> void:
 		var to_enemy = (enemy.position - position).normalized()
 		if direction.dot(to_enemy) > 0.9:
 			enemy.take_damage(pierce_damage, self)
+			# Impact effect on each hit enemy
+			if arena:
+				EffectsManager.create_impact(arena, enemy.position, arrow_color, 4)
 	
 	print("[Ability] Piercing Arrow fired")
 
@@ -457,6 +509,11 @@ func _ability_radiant_smite() -> void:
 	# Deal bonus damage to undead/demons
 	var smite_damage = damage * damage_modifier * 3.0
 	var enemies = arena.get_enemies_in_range(position, attack_range + 50)
+	
+	# Visual: Holy burst explosion
+	if arena:
+		EffectsManager.create_holy_burst(arena, position)
+		EffectsManager.create_shockwave(arena, position, Color(1.0, 1.0, 0.7), attack_range + 50, 0.3)
 	
 	for enemy in enemies:
 		var bonus = 1.0
@@ -470,6 +527,9 @@ func _ability_radiant_smite() -> void:
 			continue
 		if position.distance_to(statue.position) <= 150:
 			statue.heal(statue.max_health * 0.2)
+			# Visual: healing particles on healed statues
+			if arena:
+				EffectsManager.create_heal_particles(arena, statue.position)
 	
 	print("[Ability] Radiant Smite - Hit %d enemies" % enemies.size())
 
@@ -477,6 +537,12 @@ func _ability_radiant_smite() -> void:
 func _ability_ground_slam() -> void:
 	var slam_damage = damage * damage_modifier * 2.5
 	var enemies = arena.get_enemies_in_range(position, attack_range + 30)
+	
+	# Visual: Brown/gray shockwave + screen shake
+	if arena:
+		EffectsManager.create_shockwave(arena, position, Color(0.6, 0.4, 0.2), attack_range + 30, 0.5)
+		EffectsManager.create_impact(arena, position, Color(0.5, 0.4, 0.3), 12)
+	_screen_shake(0.3, 8.0)
 	
 	for enemy in enemies:
 		enemy.take_damage(slam_damage, self)
@@ -490,11 +556,24 @@ func _ability_blade_storm() -> void:
 	in_blade_storm = true
 	attack_timer.wait_time /= 3.0  # Triple attack speed
 	
+	# Visual: Purple spinning aura around statue
+	var aura: Node2D = null
+	if arena:
+		aura = EffectsManager.create_spinning_aura(self, Color(0.6, 0.2, 0.8), 5.0)
+	
+	# Visual feedback: purple glow during blade storm
+	var tween = create_tween()
+	tween.tween_property(sprite, "modulate", Color(0.8, 0.5, 1.0), 0.3)
+	
 	await get_tree().create_timer(5.0).timeout
 	
 	in_blade_storm = false
 	var actual_speed = attack_speed * attack_speed_modifier
 	attack_timer.wait_time = 1.0 / actual_speed
+	
+	# Restore normal color
+	var end_tween = create_tween()
+	end_tween.tween_property(sprite, "modulate", Color.WHITE, 0.3)
 	
 	print("[Ability] Blade Storm ended")
 
@@ -502,11 +581,30 @@ func _ability_blade_storm() -> void:
 func _ability_frozen_prison() -> void:
 	var enemies = arena.get_enemies_in_range(position, attack_range)
 	
+	# Visual: Ice shockwave
+	if arena:
+		EffectsManager.create_shockwave(arena, position, Color(0.6, 0.9, 1.0), attack_range, 0.4)
+	
 	for enemy in enemies:
 		if enemy.has_method("apply_freeze"):
 			enemy.apply_freeze(4.0)
+			# Visual: Ice crystals on frozen enemies
+			if arena:
+				EffectsManager.create_ice_crystals(arena, enemy.position, 4)
 	
 	print("[Ability] Frozen Prison - Froze %d enemies" % enemies.size())
+
+
+## Screen shake utility
+func _screen_shake(duration: float = 0.2, intensity: float = 5.0) -> void:
+	var camera = get_viewport().get_camera_2d()
+	if camera:
+		var original_offset = camera.offset
+		var shake_tween = create_tween()
+		for i in range(int(duration * 20)):
+			var offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+			shake_tween.tween_property(camera, "offset", original_offset + offset, 0.05)
+		shake_tween.tween_property(camera, "offset", original_offset, 0.05)
 
 
 ## Health and damage

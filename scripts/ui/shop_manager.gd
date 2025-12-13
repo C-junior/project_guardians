@@ -118,7 +118,7 @@ func _generate_shop_items() -> void:
 	var item_count = base_item_count
 	# Add extra slots from artifacts
 	for artifact in GameManager.active_artifacts:
-		var extra = artifact.get("extra_shop_items")
+		var extra = artifact.extra_shop_items if artifact.extra_shop_items else 0
 		if extra:
 			item_count += extra
 	

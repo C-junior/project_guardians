@@ -135,12 +135,12 @@ func add_gold(amount: int) -> void:
 	var bonus_multiplier = 1.0
 	# Check for gold-boosting artifacts (Golden Crown etc)
 	for artifact in active_artifacts:
-		var gold_mult = artifact.get("gold_multiplier") if artifact.get("gold_multiplier") else 0.0
+		var gold_mult = artifact.gold_multiplier if artifact.gold_multiplier else 0.0
 		if gold_mult > 0:
 			bonus_multiplier += gold_mult
 	# Check for gold-boosting consumables (Gold Fever)
 	for consumable in active_consumables:
-		var gold_mult = consumable.get("gold_multiplier") if consumable.get("gold_multiplier") else 0.0
+		var gold_mult = consumable.gold_multiplier if consumable.gold_multiplier else 0.0
 		if gold_mult > 0:
 			bonus_multiplier += gold_mult
 	gold += int(amount * bonus_multiplier)
@@ -150,11 +150,11 @@ func add_gold(amount: int) -> void:
 func get_gold_multiplier() -> float:
 	var multiplier = 1.0
 	for artifact in active_artifacts:
-		var gold_mult = artifact.get("gold_multiplier") if artifact.get("gold_multiplier") else 0.0
+		var gold_mult = artifact.gold_multiplier if artifact.gold_multiplier else 0.0
 		if gold_mult > 0:
 			multiplier += gold_mult
 	for consumable in active_consumables:
-		var gold_mult = consumable.get("gold_multiplier") if consumable.get("gold_multiplier") else 0.0
+		var gold_mult = consumable.gold_multiplier if consumable.gold_multiplier else 0.0
 		if gold_mult > 0:
 			multiplier += gold_mult
 	return multiplier
@@ -270,7 +270,7 @@ func load_meta_progression() -> void:
 func get_damage_multiplier() -> float:
 	var mult = 1.0
 	for artifact in active_artifacts:
-		var dmg = artifact.get("damage_multiplier") if artifact.get("damage_multiplier") else 0.0
+		var dmg = artifact.damage_multiplier if artifact.damage_multiplier else 0.0
 		if dmg > 0:
 			mult += dmg
 	return mult
@@ -279,7 +279,7 @@ func get_damage_multiplier() -> float:
 func get_attack_speed_multiplier() -> float:
 	var mult = 1.0
 	for artifact in active_artifacts:
-		var speed = artifact.get("attack_speed_multiplier") if artifact.get("attack_speed_multiplier") else 0.0
+		var speed = artifact.attack_speed_multiplier if artifact.attack_speed_multiplier else 0.0
 		if speed > 0:
 			mult += speed
 	return mult
@@ -289,12 +289,12 @@ func get_cooldown_multiplier() -> float:
 	var mult = 1.0
 	# Check artifacts for cooldown reduction
 	for artifact in active_artifacts:
-		var reduction = artifact.get("cooldown_reduction") if artifact.get("cooldown_reduction") else 0.0
+		var reduction = artifact.cooldown_reduction if artifact.cooldown_reduction else 0.0
 		if reduction > 0:
 			mult -= reduction
 	# Check blessing for cooldown reduction
 	if current_blessing:
-		var blessing_reduction = current_blessing.get("cooldown_reduction") if current_blessing.get("cooldown_reduction") else 0.0
+		var blessing_reduction = current_blessing.cooldown_reduction if current_blessing.cooldown_reduction else 0.0
 		if blessing_reduction > 0:
 			mult -= blessing_reduction
 	return max(0.1, mult)  # Minimum 10% cooldown
@@ -303,7 +303,7 @@ func get_cooldown_multiplier() -> float:
 func get_range_bonus() -> float:
 	var bonus = 0.0
 	for artifact in active_artifacts:
-		var range_b = artifact.get("range_bonus") if artifact.get("range_bonus") else 0.0
+		var range_b = artifact.range_bonus if artifact.range_bonus else 0.0
 		if range_b > 0:
 			bonus += range_b
 	return bonus
@@ -312,8 +312,8 @@ func get_range_bonus() -> float:
 ## Get execute damage multiplier for enemies below HP threshold
 func get_execute_damage_mult(enemy_hp_percent: float) -> float:
 	for artifact in active_artifacts:
-		var threshold = artifact.get("execute_threshold") if artifact.get("execute_threshold") else 0.0
-		var mult = artifact.get("execute_damage_mult") if artifact.get("execute_damage_mult") else 0.0
+		var threshold = artifact.execute_threshold if artifact.execute_threshold else 0.0
+		var mult = artifact.execute_damage_mult if artifact.execute_damage_mult else 0.0
 		if threshold > 0 and mult > 0 and enemy_hp_percent <= threshold:
 			return mult
 	return 1.0
@@ -323,7 +323,7 @@ func get_execute_damage_mult(enemy_hp_percent: float) -> float:
 func get_gold_per_kill() -> int:
 	var total = 0
 	for artifact in active_artifacts:
-		var gold = artifact.get("gold_per_kill") if artifact.get("gold_per_kill") else 0
+		var gold = artifact.gold_per_kill if artifact.gold_per_kill else 0
 		total += gold
 	return total
 
@@ -332,7 +332,7 @@ func get_gold_per_kill() -> int:
 func get_statue_health_regen() -> float:
 	var total = 0.0
 	for artifact in active_artifacts:
-		var regen = artifact.get("statue_health_regen") if artifact.get("statue_health_regen") else 0.0
+		var regen = artifact.statue_health_regen if artifact.statue_health_regen else 0.0
 		total += regen
 	return total
 
@@ -340,8 +340,8 @@ func get_statue_health_regen() -> float:
 ## Apply interest bonus from artifacts at wave end
 func _apply_interest_bonus() -> void:
 	for artifact in active_artifacts:
-		var threshold = artifact.get("interest_gold_threshold") if artifact.get("interest_gold_threshold") else 0
-		var bonus = artifact.get("interest_bonus") if artifact.get("interest_bonus") else 0
+		var threshold = artifact.interest_gold_threshold if artifact.interest_gold_threshold else 0
+		var bonus = artifact.interest_bonus if artifact.interest_bonus else 0
 		if threshold > 0 and bonus > 0 and gold >= threshold:
 			gold += bonus
 			print("[GameManager] Interest bonus! +%d gold (had %d+)" % [bonus, threshold])
@@ -352,7 +352,7 @@ func _apply_interest_bonus() -> void:
 ## Check if abilities should start ready (Battle Horn)
 func has_abilities_ready_consumable() -> bool:
 	for consumable in active_consumables:
-		if consumable.get("abilities_start_ready"):
+		if consumable.abilities_start_ready:
 			return true
 	return false
 
@@ -361,7 +361,7 @@ func has_abilities_ready_consumable() -> bool:
 func get_enemy_slow_from_consumables() -> float:
 	var total = 0.0
 	for consumable in active_consumables:
-		var slow = consumable.get("enemy_slow_percent") if consumable.get("enemy_slow_percent") else 0.0
+		var slow = consumable.enemy_slow_percent if consumable.enemy_slow_percent else 0.0
 		total += slow
 	return total
 
@@ -370,7 +370,7 @@ func get_enemy_slow_from_consumables() -> float:
 func get_crystal_health_boost() -> float:
 	var total = 0.0
 	for consumable in active_consumables:
-		var boost = consumable.get("crystal_health_boost") if consumable.get("crystal_health_boost") else 0.0
+		var boost = consumable.crystal_health_boost if consumable.crystal_health_boost else 0.0
 		total += boost
 	return total
 

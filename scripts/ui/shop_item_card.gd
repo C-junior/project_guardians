@@ -53,7 +53,12 @@ func _apply_setup(data: Dictionary) -> void:
 		"upgrade":
 			_setup_upgrade(data.resource)
 	
-	cost_label.text = "💰 %d" % item_cost
+	# Show price with discount indicator if applicable
+	if data.get("discounted", false) and data.has("original_cost"):
+		cost_label.text = "🏷️ %d (was %d)" % [item_cost, data.original_cost]
+		cost_label.modulate = Color(0.4, 1.0, 0.4)  # Green for discount
+	else:
+		cost_label.text = "💰 %d" % item_cost
 	update_affordability(GameManager.gold)
 
 
@@ -186,7 +191,10 @@ func update_affordability(gold: int) -> void:
 	
 	if can_afford:
 		modulate = Color.WHITE
-		if cost_label:
+		# Don't override discount green color
+		if cost_label and item_data.get("discounted", false):
+			cost_label.modulate = Color(0.4, 1.0, 0.4)  # Keep green for discount
+		elif cost_label:
 			cost_label.modulate = Color.WHITE
 	else:
 		modulate = Color(0.6, 0.6, 0.6)

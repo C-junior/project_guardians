@@ -8,6 +8,7 @@ signal shop_closed()
 # Shop state
 var current_items: Array[Dictionary] = []  # {"resource": Resource, "type": String}
 var base_item_count: int = 5
+var first_purchase_made: bool = false  # Tracks if discount was used
 
 # References
 @onready var items_container: HBoxContainer = $Control/Panel/MarginContainer/VBoxContainer/ItemsContainer
@@ -36,9 +37,16 @@ func _ready() -> void:
 		close_button.pressed.connect(_on_close_pressed)
 	
 	GameManager.gold_changed.connect(_update_gold_display)
+	GameManager.game_state_changed.connect(_on_game_state_changed)
 	
 	_load_item_pools()
 	visible = false
+
+
+func _on_game_state_changed(new_state: GameManager.GameState) -> void:
+	# Reset first purchase when starting a new run
+	if new_state == GameManager.GameState.SETUP:
+		first_purchase_made = false
 
 
 func _load_item_pools() -> void:
@@ -162,6 +170,13 @@ func _generate_shop_items() -> void:
 				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
 		
 		if item_data.size() > 0:
+			# Apply first purchase discount from blessing
+			if not first_purchase_made and GameManager.current_blessing:
+				var discount = GameManager.current_blessing.get("first_purchase_discount")
+				if discount and discount > 0:
+					item_data["original_cost"] = item_data["cost"]
+					item_data["cost"] = int(item_data["cost"] * (1.0 - discount))
+					item_data["discounted"] = true
 			current_items.append(item_data)
 			_create_item_card(item_data)
 
@@ -189,6 +204,11 @@ func _create_item_card(item_data: Dictionary) -> void:
 func _on_item_purchased(item_data: Dictionary) -> void:
 	if not GameManager.can_afford(item_data.cost):
 		return
+	
+	# Track if this was a discounted first purchase
+	if item_data.get("discounted", false) and not first_purchase_made:
+		first_purchase_made = true
+		print("[Shop] First purchase discount applied!")
 	
 	GameManager.spend_gold(item_data.cost)
 	

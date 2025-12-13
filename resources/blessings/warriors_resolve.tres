@@ -7,4 +7,4 @@ script = ExtResource("1_script")
 id = "warriors_resolve"
 display_name = "Warrior's Resolve"
 description = "Begin your journey with The Sentinel, a stalwart guardian."
-starting_statue_id = "knight"
+starting_statue_id = "sentinel"

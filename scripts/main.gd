@@ -138,20 +138,20 @@ func _show_setup() -> void:
 func _on_blessing_selected(blessing: Resource) -> void:
 	print("[Main] Blessing chosen: %s" % blessing.display_name)
 	
-	# Check if blessing provides a starting statue
+	# Check if blessing provides a bonus starting statue
 	var starting_id = blessing.get("starting_statue_id")
 	if starting_id and starting_id != "":
-		# Blessing grants a specific starting statue - skip selection
+		# Blessing grants a bonus statue - add to inventory
 		var path = "res://resources/statues/%s.tres" % starting_id
 		if ResourceLoader.exists(path):
 			var statue = load(path)
 			if statue:
-				print("[Main] Blessing provides starting statue: %s" % starting_id)
-				_on_starting_statue_selected(statue)
-				return
-		push_warning("[Main] Blessing starting statue not found: %s" % starting_id)
+				GameManager.add_to_inventory(statue, "statues")
+				print("[Main] Blessing bonus statue added to inventory: %s" % starting_id)
+		else:
+			push_warning("[Main] Blessing starting statue not found: %s" % starting_id)
 	
-	# No starting statue from blessing - show statue selection
+	# Always proceed to statue selection so player can choose their starting statue
 	if statue_selection_ui:
 		statue_selection_ui.open()
 	else:

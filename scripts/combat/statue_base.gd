@@ -50,6 +50,16 @@ var range_modifier: float = 0.0
 func _ready() -> void:
 	attack_timer.timeout.connect(_on_attack_timer)
 	ability_timer.timeout.connect(_on_ability_ready)
+	
+	# Hide range indicator by default
+	if range_indicator:
+		range_indicator.visible = false
+	
+	# Connect mouse hover signals from MouseArea
+	var mouse_area = get_node_or_null("MouseArea")
+	if mouse_area:
+		mouse_area.mouse_entered.connect(_on_mouse_entered)
+		mouse_area.mouse_exited.connect(_on_mouse_exited)
 
 
 func setup(data: Resource, tier: int = 0) -> void:
@@ -651,6 +661,15 @@ func show_range() -> void:
 func hide_range() -> void:
 	if range_indicator:
 		range_indicator.visible = false
+
+
+## Mouse hover handlers for range visualization
+func _on_mouse_entered() -> void:
+	show_range()
+
+
+func _on_mouse_exited() -> void:
+	hide_range()
 
 
 ## Click to select for evolution

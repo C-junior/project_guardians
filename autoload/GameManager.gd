@@ -58,11 +58,12 @@ var selected_starting_statue: Resource = null
 var pending_upgrade: Resource = null  # Upgrade waiting to be applied to a statue
 
 # Player Inventory (persists during run)
-# Format: { "statues": [{"data": Resource, "count": int, "tier": int}], "artifacts": [...], "consumables": [...] }
+# Format: { "statues": [{"data": Resource, "count": int, "tier": int}], "artifacts": [...], "consumables": [...], "upgrades": [...] }
 var player_inventory: Dictionary = {
 	"statues": [],
 	"artifacts": [],
-	"consumables": []
+	"consumables": [],
+	"upgrades": []
 }
 
 # Speed Control
@@ -101,8 +102,10 @@ func _reset_inventory() -> void:
 	player_inventory = {
 		"statues": [],
 		"artifacts": [],
-		"consumables": []
+		"consumables": [],
+		"upgrades": []
 	}
+	pending_upgrade = null
 	inventory_changed.emit()
 
 

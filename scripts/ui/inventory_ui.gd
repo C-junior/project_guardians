@@ -10,12 +10,14 @@ signal ascension_requested()
 signal drag_started(statue_data: Resource, tier: int)
 signal drag_ended()
 signal drop_requested(statue_data: Resource, tier: int, mouse_pos: Vector2)
+signal apply_upgrade_requested(upgrade_data: Resource)
 
 @onready var items_grid: HBoxContainer = $Control/Panel/MarginContainer/VBoxContainer/ItemsScroll/ItemsGrid
 @onready var empty_label: Label = $Control/Panel/MarginContainer/VBoxContainer/EmptyLabel
 @onready var statues_tab: Button = $Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer/StatuesTab
 @onready var artifacts_tab: Button = $Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer/ArtifactsTab
 @onready var consumables_tab: Button = $Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer/ConsumablesTab
+@onready var upgrades_tab: Button = $Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer/UpgradesTab
 @onready var close_button: Button = $Control/Panel/MarginContainer/VBoxContainer/Header/CloseButton
 @onready var ascension_button: Button = $Control/Panel/MarginContainer/VBoxContainer/Footer/AscensionButton
 
@@ -28,7 +30,7 @@ signal drop_requested(statue_data: Resource, tier: int, mouse_pos: Vector2)
 @onready var detail_ability: Label = $Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo/DetailAbility
 @onready var detail_desc: Label = $Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo/DetailDesc
 
-enum Tab { STATUES, ARTIFACTS, CONSUMABLES }
+enum Tab { STATUES, ARTIFACTS, CONSUMABLES, UPGRADES }
 var current_tab: Tab = Tab.STATUES
 var selected_item_data: Resource = null
 var selected_item_tier: int = 0
@@ -45,6 +47,8 @@ func _ready() -> void:
 	statues_tab.pressed.connect(_on_tab_pressed.bind(Tab.STATUES))
 	artifacts_tab.pressed.connect(_on_tab_pressed.bind(Tab.ARTIFACTS))
 	consumables_tab.pressed.connect(_on_tab_pressed.bind(Tab.CONSUMABLES))
+	if upgrades_tab:
+		upgrades_tab.pressed.connect(_on_tab_pressed.bind(Tab.UPGRADES))
 	close_button.pressed.connect(_on_close_pressed)
 	
 	if ascension_button:
@@ -83,6 +87,9 @@ func refresh() -> void:
 		Tab.CONSUMABLES:
 			items = GameManager.get_inventory_items("consumables")
 			item_type_str = "consumables"
+		Tab.UPGRADES:
+			items = GameManager.get_inventory_items("upgrades")
+			item_type_str = "upgrades"
 	
 	# For consumables tab, show active ones first
 	if current_tab == Tab.CONSUMABLES and GameManager.active_consumables.size() > 0:
@@ -232,6 +239,14 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 		use_btn.add_theme_font_size_override("font_size", 11)
 		use_btn.pressed.connect(_on_use_consumable.bind(item_data))
 		btn_hbox.add_child(use_btn)
+	
+	# Apply button for upgrades
+	if item_type == "upgrades":
+		var apply_btn = Button.new()
+		apply_btn.text = "⬆️ Apply"
+		apply_btn.add_theme_font_size_override("font_size", 11)
+		apply_btn.pressed.connect(_on_apply_upgrade.bind(item_data))
+		btn_hbox.add_child(apply_btn)
 	
 	return card
 
@@ -562,6 +577,8 @@ func _update_tab_styles() -> void:
 	statues_tab.modulate = Color(0.7, 0.7, 0.7, 1)
 	artifacts_tab.modulate = Color(0.7, 0.7, 0.7, 1)
 	consumables_tab.modulate = Color(0.7, 0.7, 0.7, 1)
+	if upgrades_tab:
+		upgrades_tab.modulate = Color(0.7, 0.7, 0.7, 1)
 	
 	# Highlight current tab
 	match current_tab:
@@ -571,6 +588,9 @@ func _update_tab_styles() -> void:
 			artifacts_tab.modulate = Color(1, 1, 1, 1)
 		Tab.CONSUMABLES:
 			consumables_tab.modulate = Color(1, 1, 1, 1)
+		Tab.UPGRADES:
+			if upgrades_tab:
+				upgrades_tab.modulate = Color(1, 1, 1, 1)
 
 
 func _on_tab_pressed(tab: Tab) -> void:
@@ -613,6 +633,19 @@ func _on_use_consumable(consumable_data: Resource) -> void:
 func _on_inventory_changed() -> void:
 	if visible:
 		refresh()
+
+
+func _on_apply_upgrade(upgrade_data: Resource) -> void:
+	if not upgrade_data:
+		return
+	
+	# Emit signal - main.gd will handle setting pending_upgrade and statue selection
+	apply_upgrade_requested.emit(upgrade_data)
+	
+	# Hide inventory to allow clicking on statue
+	visible = false
+	
+	print("[Inventory] Apply upgrade requested: %s - Click a statue to apply!" % upgrade_data.display_name)
 
 
 func _on_ascension_pressed() -> void:

@@ -473,6 +473,21 @@ func _on_ascend_pressed() -> void:
 	
 	var base_statue_data = selected_statues[0].get("data")
 	
+	# Collect upgrades from field statues BEFORE removing them
+	var returned_upgrades: Array[Resource] = []
+	for i in range(3):
+		var entry = selected_statues[i]
+		var node = entry.get("node")
+		if node and is_instance_valid(node) and node.has_method("get_applied_upgrades"):
+			var upgrades = node.get_applied_upgrades()
+			for upgrade in upgrades:
+				returned_upgrades.append(upgrade)
+	
+	# Return upgrades to inventory
+	for upgrade in returned_upgrades:
+		GameManager.add_to_inventory(upgrade, "upgrades")
+		print("[Ascension] Returned upgrade to inventory: %s" % upgrade.display_name)
+	
 	# Remove statues from their respective sources
 	var arena = null
 	for i in range(3):
@@ -498,7 +513,10 @@ func _on_ascend_pressed() -> void:
 	# Add 1 evolved statue to inventory with tier=1 (Enhanced)
 	GameManager.add_to_inventory(evolved_data, "statues", 1)
 	
-	print("[Ascension] Upgraded 3x %s into 1x %s! (combined from inventory + field)" % [base_statue_data.get("display_name"), evolved_data.get("display_name")])
+	var upgrade_msg = ""
+	if returned_upgrades.size() > 0:
+		upgrade_msg = " (%d upgrades returned to inventory)" % returned_upgrades.size()
+	print("[Ascension] Upgraded 3x %s into 1x %s!%s" % [base_statue_data.get("display_name"), evolved_data.get("display_name"), upgrade_msg])
 	
 	# Emit signal
 	ascension_completed.emit(evolved_data, 1)

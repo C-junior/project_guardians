@@ -81,6 +81,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "🧪 Consumables"
 
+[node name="UpgradesTab" type="Button" parent="Control/Panel/MarginContainer/VBoxContainer/Header/TabsContainer"]
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "⬆️ Upgrades"
+
 [node name="CloseButton" type="Button" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2

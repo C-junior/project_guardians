@@ -232,10 +232,10 @@ func _on_item_purchased(item_data: Dictionary) -> void:
 				print("[Shop] Consumable added to inventory: %s" % item_data.resource.display_name)
 			item_purchased.emit(item_data.resource, "consumable")
 		"upgrade":
-			# Upgrade needs to target a statue - store pending upgrade
+			# Add upgrade to inventory - player will apply from inventory UI
 			if item_data.resource:
-				GameManager.pending_upgrade = item_data.resource
-				print("[Shop] Upgrade purchased: %s - Select a statue to apply it!" % item_data.resource.display_name)
+				GameManager.add_to_inventory(item_data.resource, "upgrades")
+				print("[Shop] Upgrade added to inventory: %s" % item_data.resource.display_name)
 			item_purchased.emit(item_data.resource, "upgrade")
 	
 	# Regenerate shop to remove purchased item

@@ -61,6 +61,8 @@ func _ready() -> void:
 			inventory_ui.drag_ended.connect(_on_inventory_drag_ended)
 		if inventory_ui.has_signal("drop_requested"):
 			inventory_ui.drop_requested.connect(_on_inventory_drop_requested)
+		if inventory_ui.has_signal("apply_upgrade_requested"):
+			inventory_ui.apply_upgrade_requested.connect(_on_apply_upgrade_requested)
 	
 	# Connect ascension UI signals
 	if ascension_ui:
@@ -340,16 +342,26 @@ func _input(event: InputEvent) -> void:
 			# Check if clicked on a statue
 			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
 			if clicked_statue:
-				clicked_statue.apply_upgrade(GameManager.pending_upgrade)
+				var upgrade = GameManager.pending_upgrade
+				clicked_statue.apply_upgrade(upgrade)
+				# Remove from inventory AFTER applying
+				GameManager.remove_from_inventory(upgrade, "upgrades")
 				GameManager.pending_upgrade = null
-				print("[Main] Upgrade applied!")
-				# Return to shop
+				print("[Main] Upgrade applied to %s!" % clicked_statue.statue_data.display_name)
+				# Return to inventory/shop
+				if inventory_ui:
+					inventory_ui.visible = true
+					inventory_ui.refresh()
 				if shop_ui:
 					shop_ui.visible = true
 		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-			# Cancel upgrade
+			# Cancel upgrade - keep in inventory
 			GameManager.pending_upgrade = null
-			print("[Main] Upgrade cancelled")
+			print("[Main] Upgrade cancelled - returned to inventory")
+			# Show inventory again
+			if inventory_ui:
+				inventory_ui.visible = true
+				inventory_ui.refresh()
 
 
 func _get_statue_at_position(pos: Vector2) -> Node:
@@ -619,3 +631,18 @@ func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: V
 		_exit_placement_mode()
 		
 		print("[Main] Cannot place here - cell occupied or invalid. Returning to inventory.")
+
+
+## Handle apply upgrade request from inventory
+func _on_apply_upgrade_requested(upgrade_data: Resource) -> void:
+	if not upgrade_data:
+		return
+	
+	# Set pending upgrade for statue selection
+	GameManager.pending_upgrade = upgrade_data
+	
+	# Hide shop during upgrade selection
+	if shop_ui:
+		shop_ui.visible = false
+	
+	print("[Main] Apply upgrade mode active: %s - Click a statue to apply, right-click to cancel" % upgrade_data.display_name)

@@ -420,6 +420,11 @@ func apply_upgrade(upgrade: Resource) -> void:
 	_flash_upgrade_effect()
 
 
+## Get applied upgrades (for ascension return)
+func get_applied_upgrades() -> Array:
+	return applied_upgrades.duplicate()
+
+
 func _flash_upgrade_effect() -> void:
 	var original_modulate = modulate
 	var tween = create_tween()

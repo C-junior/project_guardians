@@ -54,12 +54,6 @@ func _ready() -> void:
 	# Hide range indicator by default
 	if range_indicator:
 		range_indicator.visible = false
-	
-	# Connect mouse hover signals from MouseArea
-	var mouse_area = get_node_or_null("MouseArea")
-	if mouse_area:
-		mouse_area.mouse_entered.connect(_on_mouse_entered)
-		mouse_area.mouse_exited.connect(_on_mouse_exited)
 
 
 func setup(data: Resource, tier: int = 0) -> void:
@@ -124,17 +118,28 @@ func _apply_global_modifiers() -> void:
 func _setup_range_indicator() -> void:
 	# Create circular range indicator texture
 	var size = int((attack_range + range_modifier) * 2)
+	if size < 10:
+		size = 10  # Minimum size to avoid issues
 	var image = Image.create(size, size, false, Image.FORMAT_RGBA8)
 	var center = Vector2(size / 2, size / 2)
 	var radius = size / 2.0
 	
+	# Use statue's effect color if available, otherwise default green
+	var base_color = Color(0.3, 0.8, 0.3)
+	if statue_data and statue_data.get("effect_color"):
+		base_color = statue_data.effect_color
+	
+	var border_width = 4.0  # Thicker border for visibility
+	
 	for x in range(size):
 		for y in range(size):
 			var dist = Vector2(x, y).distance_to(center)
-			if dist <= radius and dist >= radius - 2:
-				image.set_pixel(x, y, Color(0.3, 0.8, 0.3, 0.5))
+			if dist <= radius and dist >= radius - border_width:
+				# Ring border - more visible
+				image.set_pixel(x, y, Color(base_color.r, base_color.g, base_color.b, 0.7))
 			elif dist <= radius:
-				image.set_pixel(x, y, Color(0.3, 0.8, 0.3, 0.1))
+				# Fill - subtle but visible
+				image.set_pixel(x, y, Color(base_color.r, base_color.g, base_color.b, 0.15))
 	
 	range_indicator.texture = ImageTexture.create_from_image(image)
 
@@ -152,12 +157,29 @@ func _setup_tier_glow() -> void:
 		tier_glow.texture = sprite.texture
 
 
+var _was_mouse_over: bool = false
+
 func _process(delta: float) -> void:
 	# Apply health regeneration from artifacts (like Healing Spring)
 	var regen_rate = GameManager.get_statue_health_regen()
 	if regen_rate > 0 and current_health < max_health:
 		current_health = min(current_health + (max_health * regen_rate * delta), max_health)
 		_update_health_bar()
+	
+	# Mouse hover detection (reliable fallback using position polling)
+	var mouse_pos = get_global_mouse_position()
+	var distance = global_position.distance_to(mouse_pos)
+	var hover_radius = 50.0  # Radius for hover detection
+	var is_mouse_over = distance < hover_radius
+	
+	if is_mouse_over and not _was_mouse_over:
+		# Mouse just entered
+		_on_mouse_entered()
+	elif not is_mouse_over and _was_mouse_over:
+		# Mouse just exited
+		_on_mouse_exited()
+	
+	_was_mouse_over = is_mouse_over
 	
 	# Find target if none
 	if current_target == null or not is_instance_valid(current_target):
@@ -654,22 +676,40 @@ func _die() -> void:
 
 ## UI interactions
 func show_range() -> void:
+	print("[Statue] show_range called - range_indicator exists: %s" % (range_indicator != null))
 	if range_indicator:
+		print("[Statue] range_indicator texture: %s" % (range_indicator.texture != null))
+		if range_indicator.texture:
+			print("[Statue] texture size: %s" % range_indicator.texture.get_size())
+		print("[Statue] range_indicator z_index: %d, position: %s" % [range_indicator.z_index, range_indicator.position])
+		print("[Statue] statue position: %s, attack_range: %s" % [global_position, attack_range])
 		range_indicator.visible = true
 
 
 func hide_range() -> void:
+	print("[Statue] hide_range called")
 	if range_indicator:
 		range_indicator.visible = false
 
 
 ## Mouse hover handlers for range visualization
 func _on_mouse_entered() -> void:
+	print("[Statue] Mouse ENTERED on: %s" % (statue_data.display_name if statue_data else "unknown"))
 	show_range()
 
 
 func _on_mouse_exited() -> void:
+	print("[Statue] Mouse EXITED from: %s" % (statue_data.display_name if statue_data else "unknown"))
 	hide_range()
+
+
+## Input event handler for mouse area (fallback for mouse detection)
+func _on_mouse_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseMotion:
+		# Mouse is over this area - show range
+		if not range_indicator.visible:
+			print("[Statue] Input event detected on: %s" % (statue_data.display_name if statue_data else "unknown"))
+			show_range()
 
 
 ## Click to select for evolution

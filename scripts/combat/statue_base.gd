@@ -668,6 +668,7 @@ func _update_health_bar() -> void:
 
 
 func _die() -> void:
+	_hide_stats_tooltip()  # Clean up tooltip
 	died.emit()
 	arena.free_cell(grid_position)
 	GameManager.unregister_statue(self)
@@ -696,11 +697,139 @@ func hide_range() -> void:
 func _on_mouse_entered() -> void:
 	print("[Statue] Mouse ENTERED on: %s" % (statue_data.display_name if statue_data else "unknown"))
 	show_range()
+	_show_stats_tooltip()
 
 
 func _on_mouse_exited() -> void:
 	print("[Statue] Mouse EXITED from: %s" % (statue_data.display_name if statue_data else "unknown"))
 	hide_range()
+	_hide_stats_tooltip()
+
+
+var stats_tooltip: Control = null
+
+
+func _show_stats_tooltip() -> void:
+	if stats_tooltip:
+		return  # Already showing
+	
+	if not statue_data:
+		return
+	
+	# Create tooltip panel
+	stats_tooltip = PanelContainer.new()
+	stats_tooltip.z_index = 100
+	stats_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Style
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
+	style.set_border_width_all(2)
+	style.border_color = EvolutionManager.get_tier_color(evolution_tier)
+	style.set_corner_radius_all(8)
+	stats_tooltip.add_theme_stylebox_override("panel", style)
+	
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stats_tooltip.add_child(margin)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vbox)
+	
+	# Name with tier stars
+	var stars = ""
+	for i in range(evolution_tier + 1):
+		stars += "★"
+	var title = Label.new()
+	title.text = "%s %s (%s)" % [stars, statue_data.display_name, EvolutionManager.get_tier_name(evolution_tier)]
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", EvolutionManager.get_tier_color(evolution_tier))
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(title)
+	
+	# Stats line (with modifiers applied)
+	var final_damage = damage * damage_modifier
+	var final_speed = attack_speed * attack_speed_modifier
+	var final_range = attack_range + range_modifier
+	
+	var stats_label = Label.new()
+	stats_label.text = "⚔️ DMG: %.0f  |  ⚡ SPD: %.2f  |  📏 RNG: %.0f" % [final_damage, final_speed, final_range]
+	stats_label.add_theme_font_size_override("font_size", 11)
+	stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(stats_label)
+	
+	# Health line
+	var hp_label = Label.new()
+	hp_label.text = "❤️ HP: %.0f / %.0f" % [current_health, max_health]
+	hp_label.add_theme_font_size_override("font_size", 11)
+	hp_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(hp_label)
+	
+	# Ability
+	if statue_data.ability_name:
+		var ability_label = Label.new()
+		var cd_remaining = ability_timer.time_left if ability_timer else 0.0
+		if ability_ready:
+			ability_label.text = "🔥 %s (READY!)" % statue_data.ability_name
+			ability_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+		else:
+			ability_label.text = "🔥 %s (%.1fs)" % [statue_data.ability_name, cd_remaining]
+			ability_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.8))
+		ability_label.add_theme_font_size_override("font_size", 11)
+		ability_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vbox.add_child(ability_label)
+	
+	# Show upgrades if any
+	if applied_upgrades.size() > 0:
+		var upgrades_label = Label.new()
+		var upgrade_names = []
+		for upg in applied_upgrades:
+			if upg.get("display_name"):
+				upgrade_names.append(upg.display_name)
+		upgrades_label.text = "⬆️ Upgrades: %s" % ", ".join(upgrade_names)
+		upgrades_label.add_theme_font_size_override("font_size", 10)
+		upgrades_label.add_theme_color_override("font_color", Color(0.8, 0.6, 1.0))
+		upgrades_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vbox.add_child(upgrades_label)
+	
+	# Show modifiers if any are active
+	var mod_texts = []
+	if damage_modifier > 1.0:
+		mod_texts.append("+%.0f%% DMG" % ((damage_modifier - 1.0) * 100))
+	if attack_speed_modifier > 1.0:
+		mod_texts.append("+%.0f%% SPD" % ((attack_speed_modifier - 1.0) * 100))
+	if range_modifier > 0:
+		mod_texts.append("+%.0f RNG" % range_modifier)
+	if cooldown_modifier < 1.0:
+		mod_texts.append("-%.0f%% CD" % ((1.0 - cooldown_modifier) * 100))
+	
+	if mod_texts.size() > 0:
+		var mod_label = Label.new()
+		mod_label.text = "📊 Bonuses: %s" % ", ".join(mod_texts)
+		mod_label.add_theme_font_size_override("font_size", 10)
+		mod_label.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
+		mod_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vbox.add_child(mod_label)
+	
+	# Add to scene
+	get_tree().root.add_child(stats_tooltip)
+	
+	# Position above the statue
+	stats_tooltip.position = get_viewport().get_canvas_transform() * (global_position - Vector2(100, 150))
+
+
+func _hide_stats_tooltip() -> void:
+	if stats_tooltip:
+		stats_tooltip.queue_free()
+		stats_tooltip = null
 
 
 ## Input event handler for mouse area (fallback for mouse detection)

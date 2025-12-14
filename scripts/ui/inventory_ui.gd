@@ -2,10 +2,14 @@ extends CanvasLayer
 
 ## Inventory UI Controller
 ## Displays player's owned statues, artifacts, and consumables
+## Supports drag-and-drop for placing statues
 
 signal item_selected(item: Resource, item_type: String)
 signal place_statue_requested(statue_data: Resource, tier: int)
 signal ascension_requested()
+signal drag_started(statue_data: Resource, tier: int)
+signal drag_ended()
+signal drop_requested(statue_data: Resource, tier: int, mouse_pos: Vector2)
 
 @onready var items_grid: HBoxContainer = $Control/Panel/MarginContainer/VBoxContainer/ItemsScroll/ItemsGrid
 @onready var empty_label: Label = $Control/Panel/MarginContainer/VBoxContainer/EmptyLabel
@@ -29,6 +33,12 @@ var current_tab: Tab = Tab.STATUES
 var selected_item_data: Resource = null
 var selected_item_tier: int = 0
 var selected_item_type: String = ""
+
+# Drag and drop state
+var is_dragging: bool = false
+var dragged_statue: Resource = null
+var dragged_tier: int = 0
+var drag_preview: Control = null
 
 
 func _ready() -> void:
@@ -106,6 +116,11 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 	var card = PanelContainer.new()
 	card.custom_minimum_size = Vector2(140, 180)
 	
+	# Store data for drag-and-drop
+	card.set_meta("item_data", item_data)
+	card.set_meta("item_type", item_type)
+	card.set_meta("tier", tier)
+	
 	# Style with tier-colored border for statues
 	var stylebox = StyleBoxFlat.new()
 	stylebox.bg_color = Color(0.15, 0.15, 0.2, 0.95)
@@ -118,6 +133,14 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 		stylebox.border_color = Color(0.3, 0.3, 0.4)
 	
 	card.add_theme_stylebox_override("panel", stylebox)
+	
+	# Connect hover signals for detail panel
+	card.mouse_entered.connect(_on_card_hovered.bind(item_data, item_type, tier))
+	card.mouse_exited.connect(_on_card_unhovered)
+	
+	# Enable drag-and-drop for statues
+	if item_type == "statues":
+		card.gui_input.connect(_on_card_gui_input.bind(card, item_data, tier))
 	
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
@@ -152,6 +175,7 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Allow mouse events to pass through
 	
 	var portrait_tex = item_data.get("portrait_texture")
 	var icon_tex = item_data.get("icon")
@@ -174,7 +198,18 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 	name_label.add_theme_font_size_override("font_size", 12)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inner_vbox.add_child(name_label)
+	
+	# Drag hint for statues
+	if item_type == "statues":
+		var drag_hint = Label.new()
+		drag_hint.text = "🖱️ Drag to place"
+		drag_hint.add_theme_font_size_override("font_size", 9)
+		drag_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 0.8))
+		drag_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		drag_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner_vbox.add_child(drag_hint)
 	
 	# Action buttons container
 	var btn_hbox = HBoxContainer.new()
@@ -182,17 +217,10 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	inner_vbox.add_child(btn_hbox)
 	
-	# Info button (shows details)
-	var info_btn = Button.new()
-	info_btn.text = "ℹ️"
-	info_btn.add_theme_font_size_override("font_size", 12)
-	info_btn.pressed.connect(_on_item_info_pressed.bind(item_data, item_type, tier))
-	btn_hbox.add_child(info_btn)
-	
-	# Place button for statues
+	# Place button for statues (alternative to drag)
 	if item_type == "statues":
 		var place_btn = Button.new()
-		place_btn.text = "Place"
+		place_btn.text = "📍 Place"
 		place_btn.add_theme_font_size_override("font_size", 11)
 		place_btn.pressed.connect(_on_place_statue.bind(item_data, tier))
 		btn_hbox.add_child(place_btn)
@@ -206,6 +234,145 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 		btn_hbox.add_child(use_btn)
 	
 	return card
+
+
+## Handle hover to show details
+func _on_card_hovered(item_data: Resource, item_type: String, tier: int) -> void:
+	_show_detail_panel(item_data, item_type, tier)
+
+
+func _on_card_unhovered() -> void:
+	# Only hide if not actively dragging
+	if not is_dragging:
+		_hide_detail_panel()
+
+
+## Handle drag-and-drop for statue cards
+func _on_card_gui_input(event: InputEvent, card: Control, statue_data: Resource, tier: int) -> void:
+	if event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			# Start dragging
+			_start_drag(statue_data, tier, card)
+		elif not event.pressed and event.button_index == MOUSE_BUTTON_LEFT and is_dragging:
+			# End drag (handled by main.gd)
+			pass
+
+
+func _start_drag(statue_data: Resource, tier: int, source_card: Control) -> void:
+	is_dragging = true
+	dragged_statue = statue_data
+	dragged_tier = tier
+	
+	# Create drag preview
+	drag_preview = _create_drag_preview(statue_data, tier)
+	get_tree().root.add_child(drag_preview)
+	drag_preview.global_position = get_viewport().get_mouse_position() - Vector2(40, 40)
+	
+	# Emit signal so main.gd knows we're dragging
+	drag_started.emit(statue_data, tier)
+	
+	# Hide inventory during drag
+	visible = false
+	
+	print("[Inventory] Started dragging: %s (Tier %d)" % [statue_data.display_name, tier])
+
+
+func _create_drag_preview(statue_data: Resource, tier: int) -> Control:
+	var preview = PanelContainer.new()
+	preview.custom_minimum_size = Vector2(80, 80)
+	preview.z_index = 100
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Semi-transparent style
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.2, 0.2, 0.3, 0.8)
+	style.set_border_width_all(2)
+	style.border_color = EvolutionManager.get_tier_color(tier)
+	style.set_corner_radius_all(8)
+	preview.add_theme_stylebox_override("panel", style)
+	
+	var vbox = VBoxContainer.new()
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.add_child(vbox)
+	
+	# Portrait
+	var portrait = TextureRect.new()
+	portrait.custom_minimum_size = Vector2(60, 60)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	var portrait_tex = statue_data.get("portrait_texture")
+	if portrait_tex:
+		portrait.texture = portrait_tex
+	
+	vbox.add_child(portrait)
+	
+	# Name
+	var name_lbl = Label.new()
+	name_lbl.text = statue_data.display_name
+	name_lbl.add_theme_font_size_override("font_size", 10)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(name_lbl)
+	
+	return preview
+
+
+func _process(_delta: float) -> void:
+	# Update drag preview position
+	if is_dragging and drag_preview:
+		drag_preview.global_position = get_viewport().get_mouse_position() - Vector2(40, 40)
+
+
+## Global input handler for drag-drop (must catch release anywhere)
+func _input(event: InputEvent) -> void:
+	if not is_dragging:
+		return
+	
+	if event is InputEventMouseButton and not event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			# Mouse released - try to place via signal
+			# The actual placement is handled by main.gd which has arena access
+			_try_drop_statue()
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			# Cancel drag
+			cancel_drag()
+			visible = true
+			refresh()
+
+
+func _try_drop_statue() -> void:
+	# Emit signal with current mouse position for main.gd to handle placement
+	if is_dragging and dragged_statue:
+		var mouse_pos = get_viewport().get_mouse_position()
+		drop_requested.emit(dragged_statue, dragged_tier, mouse_pos)
+		print("[Inventory] Drop requested at position: %s" % mouse_pos)
+
+
+func cancel_drag() -> void:
+	if is_dragging:
+		is_dragging = false
+		dragged_statue = null
+		dragged_tier = 0
+		if drag_preview:
+			drag_preview.queue_free()
+			drag_preview = null
+		drag_ended.emit()
+
+
+func complete_drag() -> void:
+	if is_dragging:
+		is_dragging = false
+		var statue = dragged_statue
+		var tier = dragged_tier
+		dragged_statue = null
+		dragged_tier = 0
+		if drag_preview:
+			drag_preview.queue_free()
+			drag_preview = null
+		drag_ended.emit()
+		print("[Inventory] Drag completed")
 
 
 func _on_item_info_pressed(item_data: Resource, item_type: String, tier: int) -> void:

@@ -55,6 +55,12 @@ func _ready() -> void:
 		inventory_ui.place_statue_requested.connect(_on_inventory_place_statue)
 		if inventory_ui.has_signal("ascension_requested"):
 			inventory_ui.ascension_requested.connect(_on_ascension_requested)
+		if inventory_ui.has_signal("drag_started"):
+			inventory_ui.drag_started.connect(_on_inventory_drag_started)
+		if inventory_ui.has_signal("drag_ended"):
+			inventory_ui.drag_ended.connect(_on_inventory_drag_ended)
+		if inventory_ui.has_signal("drop_requested"):
+			inventory_ui.drop_requested.connect(_on_inventory_drop_requested)
 	
 	# Connect ascension UI signals
 	if ascension_ui:
@@ -537,3 +543,79 @@ func _on_ascension_cancelled() -> void:
 			inventory_ui.visible = true
 		if shop_ui:
 			shop_ui.visible = true
+
+
+## Drag-and-drop handlers for inventory statues
+var is_drag_dropping: bool = false
+var drag_drop_statue: Resource = null
+var drag_drop_tier: int = 0
+
+
+func _on_inventory_drag_started(statue_data: Resource, tier: int) -> void:
+	is_drag_dropping = true
+	drag_drop_statue = statue_data
+	drag_drop_tier = tier
+	
+	# Hide shop during drag
+	if shop_ui:
+		shop_ui.visible = false
+	
+	# Enable placement grid highlight
+	_enter_placement_mode()
+	
+	print("[Main] Drag-drop started: %s (Tier %d)" % [statue_data.display_name, tier])
+
+
+func _on_inventory_drag_ended() -> void:
+	is_drag_dropping = false
+	drag_drop_statue = null
+	drag_drop_tier = 0
+	_exit_placement_mode()
+
+
+func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: Vector2) -> void:
+	if not arena:
+		if inventory_ui:
+			inventory_ui.cancel_drag()
+		return
+	
+	# Convert screen position to world position (accounting for camera)
+	var world_pos = mouse_pos
+	var camera = get_viewport().get_camera_2d()
+	if camera:
+		world_pos = camera.get_global_mouse_position()
+	else:
+		world_pos = get_global_mouse_position()
+	
+	var grid_pos = arena.world_to_grid(world_pos)
+	
+	if arena.is_cell_empty(grid_pos):
+		# Place the statue
+		arena.place_statue(statue_data, grid_pos, tier)
+		
+		# Remove from inventory
+		GameManager.remove_from_inventory(statue_data, "statues", tier)
+		
+		# Complete the drag
+		if inventory_ui:
+			inventory_ui.complete_drag()
+		
+		is_drag_dropping = false
+		drag_drop_statue = null
+		drag_drop_tier = 0
+		_exit_placement_mode()
+		
+		print("[Main] Statue placed via drag-drop at %s!" % grid_pos)
+	else:
+		# Invalid placement - cancel and return to inventory
+		if inventory_ui:
+			inventory_ui.cancel_drag()
+			inventory_ui.visible = true
+			inventory_ui.refresh()
+		
+		is_drag_dropping = false
+		drag_drop_statue = null
+		drag_drop_tier = 0
+		_exit_placement_mode()
+		
+		print("[Main] Cannot place here - cell occupied or invalid. Returning to inventory.")

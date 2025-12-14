@@ -6,6 +6,6 @@
 script = ExtResource("1_script")
 id = "range_extension"
 display_name = "Range Extension"
-description = "Extends the statue's vision and reach. +2 attack range."
+description = "Extends the statue's vision and reach. +30 attack range."
 base_cost = 300
-range_bonus = 2.0
+range_bonus = 30.0

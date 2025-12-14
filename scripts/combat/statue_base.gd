@@ -411,13 +411,6 @@ func apply_upgrade(upgrade: Resource) -> void:
 			_setup_range_indicator()
 		print("[Statue] %s range +%.0f" % [statue_data.display_name, upgrade.range_bonus])
 	
-	if upgrade.get("health_multiplier") and upgrade.health_multiplier > 0:
-		var bonus_hp = int(max_health * upgrade.health_multiplier)
-		max_health += bonus_hp
-		current_health += bonus_hp
-		_update_health_bar()
-		print("[Statue] %s HP +%d" % [statue_data.display_name, bonus_hp])
-	
 	if upgrade.get("cooldown_reduction") and upgrade.cooldown_reduction > 0:
 		cooldown_modifier -= upgrade.cooldown_reduction
 		cooldown_modifier = max(0.1, cooldown_modifier)
@@ -764,14 +757,6 @@ func _show_stats_tooltip() -> void:
 	stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(stats_label)
-	
-	# Health line
-	var hp_label = Label.new()
-	hp_label.text = "❤️ HP: %.0f / %.0f" % [current_health, max_health]
-	hp_label.add_theme_font_size_override("font_size", 11)
-	hp_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
-	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_child(hp_label)
 	
 	# Ability
 	if statue_data.ability_name:

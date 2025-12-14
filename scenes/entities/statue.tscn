@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://statue001"]
+[gd_scene load_steps=4 format=3 uid="uid://statue001"]
 
-[ext_resource type="Script" path="res://scripts/combat/statue_base.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bhtae6ot6fmqo" path="res://scripts/combat/statue_base.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_5vqe2"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_mouse"]
 radius = 40.0
@@ -14,8 +16,8 @@ scale = Vector2(0.5, 0.5)
 
 [node name="TierGlow" type="Sprite2D" parent="."]
 visible = false
-scale = Vector2(0.6, 0.6)
 modulate = Color(1, 0.9, 0.3, 0.5)
+scale = Vector2(0.6, 0.6)
 
 [node name="RangeIndicator" type="Sprite2D" parent="."]
 visible = false
@@ -26,9 +28,9 @@ collision_layer = 0
 collision_mask = 4
 
 [node name="CollisionShape" type="CollisionShape2D" parent="AttackRange"]
+shape = SubResource("CircleShape2D_5vqe2")
 
 [node name="AttackTimer" type="Timer" parent="."]
-wait_time = 1.0
 autostart = true
 
 [node name="AbilityTimer" type="Timer" parent="."]
@@ -39,25 +41,24 @@ offset_left = -30.0
 offset_top = -50.0
 offset_right = 30.0
 offset_bottom = -42.0
-show_percentage = false
 value = 100.0
+show_percentage = false
 
 [node name="AbilityReady" type="Sprite2D" parent="."]
 visible = false
+modulate = Color(0.3, 1, 0.5, 0.8)
 position = Vector2(25, -25)
 scale = Vector2(0.3, 0.3)
-modulate = Color(0.3, 1, 0.5, 0.8)
 
 [node name="MouseArea" type="Area2D" parent="."]
-input_pickable = true
-monitoring = false
-monitorable = false
 collision_layer = 32
 collision_mask = 0
+monitoring = false
+monitorable = false
 
 [node name="MouseCollision" type="CollisionShape2D" parent="MouseArea"]
 shape = SubResource("CircleShape2D_mouse")
 
+[connection signal="input_event" from="MouseArea" to="." method="_on_mouse_area_input_event"]
 [connection signal="mouse_entered" from="MouseArea" to="." method="_on_mouse_entered"]
 [connection signal="mouse_exited" from="MouseArea" to="." method="_on_mouse_exited"]
-[connection signal="input_event" from="MouseArea" to="." method="_on_mouse_area_input_event"]

@@ -309,13 +309,8 @@ func _input(event: InputEvent) -> void:
 				# Show feedback - player must use Start Wave button
 				print("[Main] Statue placed! Use Start Wave button to begin combat.")
 				
-				# Show shop/inventory if in shop state
-				if GameManager.current_state == GameManager.GameState.SHOP:
-					if shop_ui:
-						shop_ui.visible = true
-					if inventory_ui:
-						inventory_ui.visible = true
-						inventory_ui.refresh()
+				# DON'T auto-open shop after placing - user can click shop button if they want to reopen
+				# This prevents unwanted shop popups during statue placement
 						
 		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			# Cancel placement

@@ -9,6 +9,7 @@ signal shop_closed()
 var current_items: Array[Dictionary] = []  # {"resource": Resource, "type": String}
 var base_item_count: int = 5
 var first_purchase_made: bool = false  # Tracks if discount was used
+var items_generated_for_wave: int = -1  # Track which wave items were generated for
 
 # References
 @onready var items_container: HBoxContainer = $Control/Panel/MarginContainer/VBoxContainer/ItemsContainer
@@ -44,9 +45,11 @@ func _ready() -> void:
 
 
 func _on_game_state_changed(new_state: GameManager.GameState) -> void:
-	# Reset first purchase when starting a new run
+	# Reset first purchase and shop items when starting a new run
 	if new_state == GameManager.GameState.SETUP:
 		first_purchase_made = false
+		items_generated_for_wave = -1
+		current_items.clear()
 
 
 func _load_item_pools() -> void:
@@ -107,7 +110,10 @@ func open_shop() -> void:
 	_update_gold_display(GameManager.gold)
 	_update_wave_display()
 	_update_reroll_button()
-	_generate_shop_items()
+	# Only generate new items if wave changed (prevents items from changing when closing/reopening shop)
+	if items_generated_for_wave != GameManager.current_wave:
+		_generate_shop_items()
+		items_generated_for_wave = GameManager.current_wave
 
 
 ## Close shop and return to combat

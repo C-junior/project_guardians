@@ -115,6 +115,40 @@ func _apply_global_modifiers() -> void:
 	range_modifier = GameManager.get_range_bonus()
 
 
+## Refresh modifiers from artifacts (called when new artifacts are acquired)
+## This allows already-placed statues to benefit from newly purchased artifacts
+func refresh_global_modifiers() -> void:
+	_apply_global_modifiers()
+	
+	# Update attack timer with new speed modifier
+	if attack_timer:
+		var actual_speed = attack_speed * attack_speed_modifier
+		attack_timer.wait_time = 1.0 / actual_speed
+	
+	# Update ability cooldown with new modifier (if ability is on cooldown)
+	if ability_timer and ability_timer.time_left > 0:
+		var remaining_percent = ability_timer.time_left / ability_timer.wait_time
+		ability_timer.wait_time = ability_cooldown * cooldown_modifier
+		ability_timer.start(ability_timer.wait_time * remaining_percent)
+	
+	# Update range collision
+	var attack_collision = get_node_or_null("AttackRange/CollisionShape")
+	if attack_collision and attack_collision.shape:
+		attack_collision.shape.radius = attack_range + range_modifier
+	
+	# Update range indicator visual
+	if range_indicator:
+		_setup_range_indicator()
+	
+	print("[Statue] %s modifiers refreshed - DMG: %.0f%%, SPD: %.0f%%, CD: %.0f%%, RNG: +%.0f" % [
+		statue_data.display_name if statue_data else "Unknown",
+		(damage_modifier - 1.0) * 100,
+		(attack_speed_modifier - 1.0) * 100,
+		(1.0 - cooldown_modifier) * 100,
+		range_modifier
+	])
+
+
 func _setup_range_indicator() -> void:
 	# Create circular range indicator texture
 	var size = int((attack_range + range_modifier) * 2)
@@ -439,8 +473,13 @@ func use_ability() -> void:
 	ability_ready = false
 	ability_ready_indicator.visible = false
 	
-	# Execute ability based on statue type
-	match statue_data.id:
+	# Get base statue ID (strip _awaken suffix for awakened statues)
+	var base_id = statue_data.id
+	if base_id.ends_with("_awaken"):
+		base_id = base_id.substr(0, base_id.length() - 7)  # Remove "_awaken"
+	
+	# Execute ability based on statue type (using base ID)
+	match base_id:
 		"sentinel":
 			_ability_shield_bash()
 		"arcane_weaver":
@@ -455,6 +494,8 @@ func use_ability() -> void:
 			_ability_blade_storm()
 		"frost_maiden":
 			_ability_frozen_prison()
+		_:
+			print("[Statue] WARNING: Unknown ability for statue ID: %s (base: %s)" % [statue_data.id, base_id])
 	
 	ability_used.emit(statue_data.ability_name)
 	_start_ability_cooldown()

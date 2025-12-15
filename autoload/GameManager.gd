@@ -203,6 +203,16 @@ func add_artifact(artifact: Resource) -> void:
 	# Apply any immediate effects
 	if artifact.has_method("on_acquired"):
 		artifact.on_acquired(self)
+	
+	# Refresh modifiers on all existing statues so they get artifact benefits
+	_refresh_all_statue_modifiers()
+
+
+## Refresh modifiers on all placed statues (called when artifacts are acquired)
+func _refresh_all_statue_modifiers() -> void:
+	for statue in placed_statues:
+		if statue and is_instance_valid(statue) and statue.has_method("refresh_global_modifiers"):
+			statue.refresh_global_modifiers()
 
 
 ## Speed Control

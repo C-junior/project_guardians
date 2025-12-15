@@ -29,6 +29,7 @@ const GRID_OFFSET = Vector2(64, 60)
 var grid_cells: Array[Array] = []  # 2D array: true = occupied
 var active_enemies: Array[Node] = []
 var wave_in_progress: bool = false
+var spawning_in_progress: bool = false  # Track if spawn sequence is still running
 
 # Preloaded scenes
 var statue_scene: PackedScene = preload("res://scenes/entities/statue.tscn")
@@ -110,7 +111,7 @@ func free_cell(grid_pos: Vector2i) -> void:
 			cell.color = Color(0.2, 0.3, 0.2, 0.3)
 
 
-## Statue placement
+## Statue placement with JUICE!
 func place_statue(statue_data: Resource, grid_pos: Vector2i, tier: int = 0) -> Node2D:
 	if not is_cell_empty(grid_pos):
 		print("[Arena] Cannot place statue - cell occupied at %s" % str(grid_pos))
@@ -127,11 +128,81 @@ func place_statue(statue_data: Resource, grid_pos: Vector2i, tier: int = 0) -> N
 	
 	occupy_cell(grid_pos)
 	
+	# JUICE: Placement celebration!
+	_placement_celebration(statue, grid_pos)
+	
 	GameManager.register_statue(statue)
 	statue_placed.emit(statue, grid_pos)
 	print("[Arena] Placed %s at %s" % [statue_data.display_name, str(grid_pos)])
 	
 	return statue
+
+
+## JUICE: Statue placement celebration effect
+func _placement_celebration(statue: Node2D, grid_pos: Vector2i) -> void:
+	var world_pos = grid_to_world(grid_pos)
+	
+	# Get statue sprite for animation
+	var sprite = statue.get_node_or_null("Sprite")
+	if sprite:
+		# Start small and scale up (materialization effect)
+		var target_scale = sprite.scale
+		sprite.scale = Vector2.ZERO
+		sprite.modulate = Color(1.5, 1.5, 2.0, 0.5)  # Ghost blue glow
+		
+		var materialize_tween = create_tween()
+		materialize_tween.tween_property(sprite, "scale", target_scale * 1.2, 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		materialize_tween.parallel().tween_property(sprite, "modulate", Color(1.2, 1.2, 1.0, 1.0), 0.2)
+		materialize_tween.tween_property(sprite, "scale", target_scale, 0.1).set_ease(Tween.EASE_IN_OUT)
+		materialize_tween.tween_property(sprite, "modulate", Color.WHITE, 0.1)
+	
+	# Ground impact shockwave
+	var impact_color = Color(0.4, 0.8, 0.4, 0.8)  # Green placement color
+	EffectsManager.create_shockwave(self, world_pos, impact_color, 60.0, 0.25)
+	
+	# Sparkle particles
+	for i in range(8):
+		var sparkle = Node2D.new()
+		sparkle.position = world_pos + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+		sparkle.z_index = 10
+		add_child(sparkle)
+		
+		var sparkle_drawer = _SparkleParticle.new()
+		sparkle_drawer.particle_color = Color(0.8, 1.0, 0.8)
+		sparkle.add_child(sparkle_drawer)
+		
+		var direction = Vector2(randf_range(-50, 50), randf_range(-80, -30))
+		var sparkle_tween = create_tween()
+		sparkle_tween.tween_property(sparkle, "position", sparkle.position + direction, 0.4).set_ease(Tween.EASE_OUT)
+		sparkle_tween.parallel().tween_property(sparkle_drawer, "alpha", 0.0, 0.4)
+		sparkle_tween.tween_callback(sparkle.queue_free)
+	
+	# Flash the grid cell
+	var cell = placement_grid.get_node_or_null("Cell_%d_%d" % [grid_pos.x, grid_pos.y])
+	if cell:
+		var original_color = cell.color
+		var flash_tween = create_tween()
+		flash_tween.tween_property(cell, "color", Color(0.5, 1.0, 0.5, 0.8), 0.1)
+		flash_tween.tween_property(cell, "color", original_color, 0.2)
+
+
+## Simple sparkle particle for placement effect
+class _SparkleParticle extends Node2D:
+	var particle_color: Color = Color.WHITE
+	var alpha: float = 1.0
+	
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	
+	func _draw() -> void:
+		var color = particle_color
+		color.a = alpha
+		# Star shape
+		var size = 4.0 * alpha
+		draw_line(Vector2(-size, 0), Vector2(size, 0), color, 2.0)
+		draw_line(Vector2(0, -size), Vector2(0, size), color, 2.0)
+		draw_line(Vector2(-size * 0.7, -size * 0.7), Vector2(size * 0.7, size * 0.7), color, 1.5)
+		draw_line(Vector2(-size * 0.7, size * 0.7), Vector2(size * 0.7, -size * 0.7), color, 1.5)
 
 
 func remove_statue(statue: Node2D) -> void:
@@ -191,7 +262,8 @@ func _flash_crystal() -> void:
 
 
 func _check_wave_complete() -> void:
-	if wave_in_progress and active_enemies.is_empty():
+	# Wave only completes when spawning is done AND all enemies are dead
+	if wave_in_progress and not spawning_in_progress and active_enemies.is_empty():
 		wave_in_progress = false
 		wave_completed.emit(GameManager.current_wave)
 		GameManager.end_wave(true)
@@ -200,6 +272,7 @@ func _check_wave_complete() -> void:
 ## Wave management
 func start_wave(wave_data: Resource) -> void:
 	wave_in_progress = true
+	spawning_in_progress = true  # Mark spawning as in progress
 	wave_started.emit(wave_data.wave_number)
 	
 	# Apply consumable effects at wave start
@@ -219,7 +292,9 @@ func start_wave(wave_data: Resource) -> void:
 			await get_tree().create_timer(wait_time).timeout
 		last_spawn_time = spawn_info.spawn_time
 		
-		if not wave_in_progress:
+		# Don't break on wave_in_progress = false, we still need to spawn all enemies
+		# Only break if game is completely over (crystal destroyed)
+		if GameManager.current_state == GameManager.GameState.GAME_OVER:
 			break
 		
 		var enemy_resource = _load_enemy_resource(spawn_info.enemy_id)
@@ -227,6 +302,13 @@ func start_wave(wave_data: Resource) -> void:
 			spawn_enemy(enemy_resource)
 		else:
 			print("[Arena] Failed to load enemy: %s" % spawn_info.enemy_id)
+	
+	# All enemies spawned - mark spawning complete
+	spawning_in_progress = false
+	print("[Arena] Wave %d spawning complete" % wave_data.wave_number)
+	
+	# Check if wave is already complete (all enemies died during spawn sequence)
+	_check_wave_complete()
 
 
 ## Apply consumable effects when wave starts

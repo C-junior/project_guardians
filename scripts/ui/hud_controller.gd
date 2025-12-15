@@ -192,18 +192,22 @@ func _toggle_pause() -> void:
 		pause_button.text = "▶️"
 
 
+## JUICE: Enhanced wave start announcement
 func show_wave_start(wave: int) -> void:
 	# Get wave preview
 	var preview = WaveData.get_wave_preview(wave)
 	var is_boss_wave = (wave % 5 == 0)
 	
 	# Update wave start label with preview
+	var wave_label_node = $WaveStartPanel/VBox/WaveStartLabel
 	if is_boss_wave:
-		$WaveStartPanel/VBox/WaveStartLabel.text = "⚔️ BOSS WAVE %d ⚔️" % wave
-		$WaveStartPanel/VBox/WaveStartLabel.add_theme_color_override("font_color", Color.ORANGE)
+		wave_label_node.text = "⚔️ BOSS WAVE %d ⚔️" % wave
+		wave_label_node.add_theme_color_override("font_color", Color.ORANGE)
+		wave_label_node.add_theme_font_size_override("font_size", 36)  # Bigger for boss
 	else:
-		$WaveStartPanel/VBox/WaveStartLabel.text = "Wave %d" % wave
-		$WaveStartPanel/VBox/WaveStartLabel.remove_theme_color_override("font_color")
+		wave_label_node.text = "Wave %d" % wave
+		wave_label_node.remove_theme_color_override("font_color")
+		wave_label_node.add_theme_font_size_override("font_size", 28)
 	
 	# Add preview label if it doesn't exist
 	var preview_label = $WaveStartPanel/VBox.get_node_or_null("PreviewLabel")
@@ -215,26 +219,96 @@ func show_wave_start(wave: int) -> void:
 		$WaveStartPanel/VBox.add_child(preview_label)
 	preview_label.text = preview
 	
+	# JUICE: Start with scale 0 and animate in
 	wave_start_panel.visible = true
+	wave_start_panel.scale = Vector2.ZERO
+	wave_start_panel.pivot_offset = wave_start_panel.size / 2
+	wave_start_panel.modulate.a = 1.0
 	
 	var tween = create_tween()
+	
+	# Pop in with elastic effect
+	tween.tween_property(wave_start_panel, "scale", Vector2(1.1, 1.1), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(wave_start_panel, "scale", Vector2.ONE, 0.1)
+	
+	# Boss wave gets extra effects
+	if is_boss_wave:
+		_boss_wave_effects()
+	
+	# Hold then fade out
 	tween.tween_interval(2.0)
-	tween.tween_property(wave_start_panel, "modulate:a", 0.0, 0.5)
+	tween.tween_property(wave_start_panel, "scale", Vector2(0.8, 0.8), 0.2)
+	tween.parallel().tween_property(wave_start_panel, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(func(): 
 		wave_start_panel.visible = false
 		wave_start_panel.modulate.a = 1.0
+		wave_start_panel.scale = Vector2.ONE
 	)
 
 
+## JUICE: Boss wave special effects
+func _boss_wave_effects() -> void:
+	# Screen shake
+	var camera = get_viewport().get_camera_2d()
+	if camera:
+		var original_offset = camera.offset
+		var shake_tween = create_tween()
+		for i in range(8):
+			var offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+			shake_tween.tween_property(camera, "offset", original_offset + offset, 0.03)
+		shake_tween.tween_property(camera, "offset", original_offset, 0.05)
+	
+	# Red vignette flash
+	var vignette = ColorRect.new()
+	vignette.name = "BossVignette"
+	vignette.color = Color(0.8, 0.0, 0.0, 0.3)
+	vignette.anchors_preset = Control.PRESET_FULL_RECT
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vignette)
+	
+	var flash_tween = create_tween().set_loops(2)
+	flash_tween.tween_property(vignette, "color:a", 0.0, 0.15)
+	flash_tween.tween_property(vignette, "color:a", 0.3, 0.15)
+	flash_tween.set_loops(1)
+	flash_tween.tween_property(vignette, "color:a", 0.0, 0.3)
+	flash_tween.tween_callback(vignette.queue_free)
+
+
+## JUICE: Enhanced wave complete celebration
 func show_wave_complete() -> void:
 	wave_complete_panel.visible = true
+	wave_complete_panel.scale = Vector2.ZERO
+	wave_complete_panel.pivot_offset = wave_complete_panel.size / 2
+	wave_complete_panel.modulate.a = 1.0
 	
+	# Victory green flash
+	var victory_flash = ColorRect.new()
+	victory_flash.name = "VictoryFlash"
+	victory_flash.color = Color(0.3, 1.0, 0.3, 0.25)
+	victory_flash.anchors_preset = Control.PRESET_FULL_RECT
+	victory_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(victory_flash)
+	
+	var flash_tween = create_tween()
+	flash_tween.tween_property(victory_flash, "color:a", 0.0, 0.5)
+	flash_tween.tween_callback(victory_flash.queue_free)
+	
+	# Panel animation
 	var tween = create_tween()
-	tween.tween_interval(1.0)
-	tween.tween_property(wave_complete_panel, "modulate:a", 0.0, 0.5)
+	
+	# Pop in with bounce
+	tween.tween_property(wave_complete_panel, "scale", Vector2(1.2, 1.2), 0.1).set_ease(Tween.EASE_OUT)
+	tween.tween_property(wave_complete_panel, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC)
+	
+	# Hold then shrink out
+	tween.tween_interval(1.5)
+	tween.tween_property(wave_complete_panel, "scale", Vector2(1.1, 1.1), 0.1)
+	tween.tween_property(wave_complete_panel, "scale", Vector2.ZERO, 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(wave_complete_panel, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(func():
 		wave_complete_panel.visible = false
 		wave_complete_panel.modulate.a = 1.0
+		wave_complete_panel.scale = Vector2.ONE
 	)
 
 

@@ -216,6 +216,9 @@ func _on_item_purchased(item_data: Dictionary) -> void:
 		first_purchase_made = true
 		print("[Shop] First purchase discount applied!")
 	
+	# JUICE: Purchase celebration!
+	_purchase_celebration(item_data.cost)
+	
 	GameManager.spend_gold(item_data.cost)
 	
 	match item_data.type:
@@ -240,6 +243,42 @@ func _on_item_purchased(item_data: Dictionary) -> void:
 	
 	# Regenerate shop to remove purchased item
 	_generate_shop_items()
+
+
+## JUICE: Purchase celebration effect
+func _purchase_celebration(cost: int) -> void:
+	# Gold label bounce and flash
+	if gold_label:
+		var original_color = gold_label.get_theme_color("font_color") if gold_label.has_theme_color("font_color") else Color.WHITE
+		var gold_tween = create_tween()
+		gold_tween.tween_property(gold_label, "scale", Vector2(1.3, 1.3), 0.08)
+		gold_tween.parallel().tween_property(gold_label, "modulate", Color.GOLD, 0.08)
+		gold_tween.tween_property(gold_label, "scale", Vector2.ONE, 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC)
+		gold_tween.parallel().tween_property(gold_label, "modulate", Color.WHITE, 0.15)
+	
+	# Spawn coin particles flying from gold label
+	for i in range(5):
+		var coin = Label.new()
+		coin.text = "💰"
+		coin.add_theme_font_size_override("font_size", 16)
+		if gold_label:
+			coin.position = gold_label.global_position + Vector2(randf_range(-20, 20), 0)
+		else:
+			coin.position = Vector2(100, 50)
+		add_child(coin)
+		
+		var direction = Vector2(randf_range(-100, 100), randf_range(-80, -40))
+		var coin_tween = create_tween()
+		coin_tween.tween_property(coin, "position", coin.position + direction, 0.4).set_ease(Tween.EASE_OUT)
+		coin_tween.parallel().tween_property(coin, "modulate:a", 0.0, 0.4)
+		coin_tween.tween_callback(coin.queue_free)
+	
+	# Flash the whole shop panel briefly
+	var panel = $Control/Panel
+	if panel:
+		var panel_tween = create_tween()
+		panel_tween.tween_property(panel, "modulate", Color(1.2, 1.2, 1.0), 0.05)
+		panel_tween.tween_property(panel, "modulate", Color.WHITE, 0.1)
 
 
 func _on_reroll_pressed() -> void:

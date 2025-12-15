@@ -325,10 +325,19 @@ func _attack(target: Node) -> void:
 		return
 	
 	var final_damage = damage * damage_modifier
+	var is_crit = false
 	
-	# Blade storm crit chance
-	if in_blade_storm and randf() < 0.5:
-		final_damage *= 2.0
+	# JUICE: Critical hit system
+	var crit_chance = 0.08  # Base 8% crit chance
+	var crit_multiplier = 1.75  # 175% damage on crit
+	
+	# Check for crit (blade storm has higher crit chance)
+	if in_blade_storm:
+		crit_chance = 0.5  # 50% crit during blade storm
+	
+	if randf() < crit_chance:
+		is_crit = true
+		final_damage *= crit_multiplier
 	
 	# Execute damage bonus (from Executioner's Stone)
 	if target.has_method("get_hp_percent"):
@@ -348,28 +357,61 @@ func _attack(target: Node) -> void:
 			EffectsManager.create_impact(arena, target.position, effect_color, 6)
 	else:
 		# Ranged: spawn visual projectile with trail
-		_spawn_projectile(target, final_damage)
+		_spawn_projectile(target, final_damage, is_crit)
 		# Muzzle flash effect
 		if arena:
 			EffectsManager.create_muzzle_flash(arena, position, effect_color)
 	
+	# JUICE: Critical hit visual feedback
+	if is_crit and arena:
+		_show_crit_effect(target)
+	
 	attacked.emit(target, final_damage)
 	
-	# Animation feedback - attack pulse
+	# Animation feedback - attack pulse (bigger for crits)
+	var pulse_scale = 0.6 if is_crit else 0.55
 	var tween = create_tween()
-	tween.tween_property(sprite, "scale", Vector2(0.55, 0.55), 0.05)
+	tween.tween_property(sprite, "scale", Vector2(pulse_scale, pulse_scale), 0.05)
 	tween.tween_property(sprite, "scale", Vector2(0.5, 0.5), 0.1)
-	# Color flash on attack
-	tween.parallel().tween_property(sprite, "modulate", effect_color, 0.05)
+	# Color flash on attack (orange for crit)
+	var flash_color = Color(1.0, 0.6, 0.2) if is_crit else effect_color
+	tween.parallel().tween_property(sprite, "modulate", flash_color, 0.05)
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.1)
 
 
-func _spawn_projectile(target: Node, projectile_damage: float) -> void:
+## JUICE: Show critical hit effect
+func _show_crit_effect(target: Node) -> void:
+	# Create "CRIT!" text
+	var crit_label = Label.new()
+	crit_label.text = "CRIT!"
+	crit_label.add_theme_font_size_override("font_size", 24)
+	crit_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))  # Orange
+	crit_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	crit_label.add_theme_constant_override("outline_size", 4)
+	crit_label.position = target.position - Vector2(25, 80)
+	crit_label.z_index = 100
+	arena.add_child(crit_label)
+	
+	# Pop animation
+	crit_label.scale = Vector2.ZERO
+	var tween = arena.create_tween()
+	tween.tween_property(crit_label, "scale", Vector2(1.3, 1.3), 0.1).set_ease(Tween.EASE_OUT)
+	tween.tween_property(crit_label, "scale", Vector2.ONE, 0.1)
+	tween.tween_property(crit_label, "position:y", crit_label.position.y - 30, 0.4)
+	tween.parallel().tween_property(crit_label, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(crit_label.queue_free)
+	
+	# Extra particles for crit
+	EffectsManager.create_impact(arena, target.position, Color(1.0, 0.6, 0.2), 10)
+
+
+func _spawn_projectile(target: Node, projectile_damage: float, is_crit: bool = false) -> void:
 	# Visual projectile with trail effect
 	if not target or not is_instance_valid(target):
 		return
 	
-	var effect_color = statue_data.effect_color if statue_data.get("effect_color") else Color.WHITE
+	# Use orange for crits, else normal effect color
+	var effect_color = Color(1.0, 0.6, 0.2) if is_crit else (statue_data.effect_color if statue_data.get("effect_color") else Color.WHITE)
 	
 	if arena:
 		# Create visual projectile that moves and deals damage on hit

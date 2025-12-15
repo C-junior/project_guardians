@@ -360,6 +360,10 @@ func _die() -> void:
 	
 	died.emit(actual_gold)
 	
+	# JUICE: Register kill with combo system
+	if ComboManager:
+		ComboManager.register_kill()
+	
 	# Clean up path follow
 	if path_follow:
 		path_follow.queue_free()

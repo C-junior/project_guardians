@@ -201,10 +201,181 @@ func _get_statue_data_by_id(statue_id: String) -> Resource:
 	return null
 
 
+## JUICE: Spectacular evolution effect with particles, vortex, flash, and shake
 func _play_evolution_effect(pos1: Vector2, pos2: Vector2) -> void:
-	# Simple visual effect - flash and particles would go here
-	# For now, we'll create temporary visual feedback
-	pass
+	var merge_point = (pos1 + pos2) / 2
+	
+	# Get arena or main scene for adding effects
+	var main = get_tree().current_scene
+	if not main:
+		return
+	
+	# 1. Time slowdown for dramatic effect
+	Engine.time_scale = 0.3
+	await get_tree().create_timer(0.03).timeout  # Short pause
+	Engine.time_scale = GameManager.game_speed
+	
+	# 2. Particles fly toward merge point from both positions
+	for i in range(12):
+		var particle = _create_fly_particle(main, pos1, merge_point)
+		var particle2 = _create_fly_particle(main, pos2, merge_point)
+	
+	# 3. Energy vortex at merge point
+	var vortex = Node2D.new()
+	vortex.position = merge_point
+	vortex.z_index = 5
+	main.add_child(vortex)
+	
+	var vortex_drawer = _EvolutionVortex.new()
+	vortex.add_child(vortex_drawer)
+	
+	# Animate vortex
+	var vortex_tween = main.create_tween()
+	vortex_tween.tween_property(vortex_drawer, "radius", 60.0, 0.3)
+	vortex_tween.parallel().tween_property(vortex_drawer, "intensity", 1.0, 0.3)
+	vortex_tween.tween_property(vortex_drawer, "radius", 0.0, 0.2)
+	vortex_tween.tween_callback(vortex.queue_free)
+	
+	# 4. Bright flash at apex
+	await get_tree().create_timer(0.25).timeout
+	_evolution_flash(main, merge_point)
+	
+	# 5. Screen shake
+	_evolution_screen_shake()
+
+
+func _create_fly_particle(parent: Node, start: Vector2, end: Vector2) -> Node2D:
+	var particle = Node2D.new()
+	particle.position = start + Vector2(randf_range(-30, 30), randf_range(-30, 30))
+	particle.z_index = 10
+	parent.add_child(particle)
+	
+	var drawer = _EvolutionParticle.new()
+	drawer.color = Color(0.8, 0.6, 1.0)  # Purple/magic color
+	particle.add_child(drawer)
+	
+	# Fly toward merge point
+	var tween = parent.create_tween()
+	var duration = randf_range(0.2, 0.4)
+	tween.tween_property(particle, "position", end, duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(drawer, "size", 0.0, duration)
+	tween.tween_callback(particle.queue_free)
+	
+	return particle
+
+
+func _evolution_flash(parent: Node, pos: Vector2) -> void:
+	# Create bright white flash
+	var flash = Node2D.new()
+	flash.position = pos
+	flash.z_index = 100
+	parent.add_child(flash)
+	
+	var flash_drawer = _EvolutionFlash.new()
+	flash.add_child(flash_drawer)
+	
+	# Expand and fade
+	var tween = parent.create_tween()
+	tween.tween_property(flash_drawer, "radius", 150.0, 0.15).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(flash_drawer, "alpha", 0.0, 0.25)
+	tween.tween_callback(flash.queue_free)
+	
+	# Spawn sparkles after flash
+	for i in range(16):
+		var sparkle = Node2D.new()
+		sparkle.position = pos
+		sparkle.z_index = 10
+		parent.add_child(sparkle)
+		
+		var sparkle_drawer = _EvolutionSparkle.new()
+		sparkle_drawer.color = [Color(1.0, 0.9, 0.4), Color(0.6, 0.8, 1.0), Color(0.8, 1.0, 0.6)][i % 3]
+		sparkle.add_child(sparkle_drawer)
+		
+		var direction = Vector2(randf_range(-120, 120), randf_range(-120, 30))
+		var sparkle_tween = parent.create_tween()
+		sparkle_tween.tween_property(sparkle, "position", pos + direction, 0.5).set_ease(Tween.EASE_OUT)
+		sparkle_tween.parallel().tween_property(sparkle_drawer, "alpha", 0.0, 0.5)
+		sparkle_tween.tween_callback(sparkle.queue_free)
+
+
+func _evolution_screen_shake() -> void:
+	var camera = get_viewport().get_camera_2d()
+	if camera:
+		var original_offset = camera.offset
+		var shake_tween = create_tween()
+		for i in range(10):
+			var intensity = 8.0 * (1.0 - i / 10.0)  # Decreasing intensity
+			var offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+			shake_tween.tween_property(camera, "offset", original_offset + offset, 0.03)
+		shake_tween.tween_property(camera, "offset", original_offset, 0.05)
+
+
+## Evolution particle that flies toward merge point
+class _EvolutionParticle extends Node2D:
+	var color: Color = Color(0.8, 0.6, 1.0)
+	var size: float = 8.0
+	
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, size, color)
+		draw_circle(Vector2.ZERO, size * 0.5, Color.WHITE)
+
+
+## Evolution vortex effect
+class _EvolutionVortex extends Node2D:
+	var radius: float = 0.0
+	var intensity: float = 0.0
+	var rotation_speed: float = 0.0
+	
+	func _process(delta: float) -> void:
+		rotation_speed += delta * 20.0
+		queue_redraw()
+	
+	func _draw() -> void:
+		if radius <= 0:
+			return
+		# Draw swirling rings
+		for i in range(6):
+			var ring_radius = radius * (1.0 - i * 0.15)
+			var color = Color(0.7, 0.5, 1.0, intensity * (1.0 - i * 0.15))
+			var start_angle = rotation_speed + i * PI / 3
+			draw_arc(Vector2.ZERO, ring_radius, start_angle, start_angle + PI, 12, color, 3.0)
+
+
+## Evolution flash effect
+class _EvolutionFlash extends Node2D:
+	var radius: float = 30.0
+	var alpha: float = 1.0
+	
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	
+	func _draw() -> void:
+		var color = Color(1.0, 0.95, 0.8, alpha)
+		draw_circle(Vector2.ZERO, radius, color)
+		# Inner bright core
+		draw_circle(Vector2.ZERO, radius * 0.4, Color(1.0, 1.0, 1.0, alpha))
+
+
+## Evolution sparkle effect
+class _EvolutionSparkle extends Node2D:
+	var color: Color = Color(1.0, 0.9, 0.4)
+	var alpha: float = 1.0
+	
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	
+	func _draw() -> void:
+		var c = color
+		c.a = alpha
+		var size = 6.0 * alpha
+		# Star shape
+		draw_line(Vector2(-size, 0), Vector2(size, 0), c, 2.0)
+		draw_line(Vector2(0, -size), Vector2(0, size), c, 2.0)
+		draw_line(Vector2(-size * 0.7, -size * 0.7), Vector2(size * 0.7, size * 0.7), c, 1.5)
+		draw_line(Vector2(-size * 0.7, size * 0.7), Vector2(size * 0.7, -size * 0.7), c, 1.5)
 
 
 ## Start statue selection for evolution

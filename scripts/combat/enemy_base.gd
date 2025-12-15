@@ -185,19 +185,35 @@ func take_damage(amount: float, source: Node = null) -> void:
 	_update_health_bar()
 	took_damage.emit(final_damage, current_health)
 	
-	# Damage flash
-	_damage_flash()
+	# JUICE: Hit impact effects
+	_hit_impact_effect(final_damage)
 	
-	# Floating damage number
+	# Floating damage number (juiced up!)
 	_spawn_damage_number(final_damage)
 	
 	if current_health <= 0:
 		_die()
 
 
-func _damage_flash() -> void:
+## JUICE: Hit impact effect (flash + squash)
+func _hit_impact_effect(damage: float) -> void:
+	# White flash then color
+	sprite.modulate = Color.WHITE
+	
+	# Squash effect (enemy gets "hit")
+	var original_scale = sprite.scale
+	var squash_scale = original_scale * Vector2(1.2, 0.8)  # Wider and shorter
+	
+	var hit_tween = create_tween()
+	hit_tween.tween_property(sprite, "scale", squash_scale, 0.05)
+	hit_tween.tween_property(sprite, "scale", original_scale, 0.1).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC)
+	
+	# Color flash
+	await get_tree().create_timer(0.05).timeout
 	sprite.modulate = Color.RED
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.08).timeout
+	
+	# Restore color based on status
 	if is_frozen:
 		sprite.modulate = Color(0.5, 0.8, 1.0, 1.0)
 	elif enemy_data:
@@ -206,18 +222,47 @@ func _damage_flash() -> void:
 		sprite.modulate = Color.WHITE
 
 
+## JUICE: Enhanced damage numbers with scaling and colors
 func _spawn_damage_number(damage: float) -> void:
-	# Create floating damage text
+	# Create floating damage text with JUICE!
 	var label = Label.new()
 	label.text = str(int(damage))
-	label.position = Vector2(-10, -50)
-	label.add_theme_font_size_override("font_size", 16)
-	label.add_theme_color_override("font_color", Color.YELLOW)
+	
+	# Random X offset so numbers don't stack
+	var x_offset = randf_range(-25, 25)
+	label.position = Vector2(x_offset, -50)
+	
+	# Scale font size based on damage (bigger damage = bigger number)
+	var base_size = 16
+	var size_bonus = min(damage / 50.0, 1.5)  # Max 1.5x bigger for big hits
+	var font_size = int(base_size * (1.0 + size_bonus))
+	label.add_theme_font_size_override("font_size", font_size)
+	
+	# Color based on damage type
+	var damage_color = Color.WHITE
+	if damage >= max_health * 0.3:  # Big hit = orange
+		damage_color = Color(1.0, 0.6, 0.2)
+	elif damage >= max_health * 0.15:  # Medium hit = yellow
+		damage_color = Color(1.0, 0.9, 0.3)
+	else:  # Normal hit = white
+		damage_color = Color(1.0, 1.0, 1.0)
+	
+	label.add_theme_color_override("font_color", damage_color)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 3)
 	add_child(label)
 	
+	# JUICE: Pop-in animation (scale up then normalize)
+	label.scale = Vector2(0.5, 0.5)
+	label.pivot_offset = label.size / 2
+	
 	var tween = create_tween()
-	tween.tween_property(label, "position:y", label.position.y - 30, 0.5)
-	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.5)
+	# Pop in
+	tween.tween_property(label, "scale", Vector2(1.2, 1.2), 0.08).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.1).set_ease(Tween.EASE_OUT)
+	# Float up and fade
+	tween.parallel().tween_property(label, "position:y", label.position.y - 40, 0.6).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(label.queue_free)
 
 
@@ -285,7 +330,7 @@ func _on_teleport_timer() -> void:
 		tween.tween_property(sprite, "modulate:a", 1.0, 0.1)
 
 
-## Death
+## Death with JUICE! 🎉
 func _die() -> void:
 	# Calculate base gold (with Soul Gem bonus)
 	var base_gold = gold_reward + GameManager.get_gold_per_kill()
@@ -296,6 +341,9 @@ func _die() -> void:
 	
 	# Add gold to player (this applies the multiplier again, so pass base)
 	GameManager.add_gold(base_gold)
+	
+	# JUICE: Death celebration effects!
+	_death_celebration()
 	
 	# Spawn gold popup (show actual earned amount)
 	_spawn_gold_popup(actual_gold)
@@ -317,6 +365,51 @@ func _die() -> void:
 		path_follow.queue_free()
 	
 	queue_free()
+
+
+## JUICE: Death celebration with particles and effects
+func _death_celebration() -> void:
+	# Determine effect intensity based on enemy type
+	var is_elite = enemy_data.scale_factor >= 1.5 if enemy_data else false
+	var is_boss = enemy_data.is_boss if enemy_data and enemy_data.get("is_boss") else false
+	
+	# Get enemy color for effects
+	var effect_color = enemy_data.tint_color if enemy_data else Color.WHITE
+	
+	# Death particles (impact burst)
+	if arena:
+		var particle_count = 8 if not is_elite else 12
+		EffectsManager.create_impact(arena, global_position, effect_color, particle_count)
+	
+	# Screen shake (subtle for normal, stronger for elite/boss)
+	var shake_intensity = 3.0
+	var shake_duration = 0.08
+	if is_elite:
+		shake_intensity = 6.0
+		shake_duration = 0.12
+	if is_boss:
+		shake_intensity = 10.0
+		shake_duration = 0.2
+	
+	_screen_shake(shake_duration, shake_intensity)
+	
+	# Death scale pop (enemy briefly expands then disappears)
+	var death_tween = create_tween()
+	death_tween.tween_property(sprite, "scale", sprite.scale * 1.3, 0.05)
+	death_tween.parallel().tween_property(sprite, "modulate:a", 0.0, 0.1)
+
+
+## Screen shake utility for death effects
+func _screen_shake(duration: float = 0.1, intensity: float = 3.0) -> void:
+	var camera = get_viewport().get_camera_2d()
+	if camera:
+		var original_offset = camera.offset
+		var shake_tween = create_tween()
+		var shake_count = int(duration * 30)  # ~30 fps worth of shakes
+		for i in range(shake_count):
+			var offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+			shake_tween.tween_property(camera, "offset", original_offset + offset, duration / shake_count)
+		shake_tween.tween_property(camera, "offset", original_offset, 0.03)
 
 
 func _spawn_gold_popup(amount: int = -1) -> void:

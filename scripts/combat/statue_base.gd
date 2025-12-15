@@ -473,6 +473,9 @@ func use_ability() -> void:
 	ability_ready = false
 	ability_ready_indicator.visible = false
 	
+	# JUICE: Ability activation effects!
+	_ability_activation_juice()
+	
 	# Get base statue ID (strip _awaken suffix for awakened statues)
 	var base_id = statue_data.id
 	if base_id.ends_with("_awaken"):
@@ -499,6 +502,32 @@ func use_ability() -> void:
 	
 	ability_used.emit(statue_data.ability_name)
 	_start_ability_cooldown()
+
+
+## JUICE: Ability activation effects
+func _ability_activation_juice() -> void:
+	# Brief time slowdown for "hitstop" feel (100ms at 0.3x speed)
+	Engine.time_scale = 0.3
+	await get_tree().create_timer(0.03).timeout  # 0.03 real seconds = 0.1 game seconds feel
+	Engine.time_scale = GameManager.game_speed  # Restore to current game speed
+	
+	# Get ability color (use statue's effect color)
+	var ability_color = statue_data.effect_color if statue_data and statue_data.get("effect_color") else Color(1.0, 0.9, 0.4)
+	
+	# Statue power-up glow effect
+	var original_modulate = sprite.modulate
+	var glow_tween = create_tween()
+	glow_tween.tween_property(sprite, "modulate", ability_color * 2.0, 0.1)  # Bright flash
+	glow_tween.tween_property(sprite, "modulate", original_modulate, 0.2)
+	
+	# Scale up briefly (power surge feel)
+	var original_scale = sprite.scale
+	var scale_tween = create_tween()
+	scale_tween.tween_property(sprite, "scale", original_scale * 1.3, 0.1).set_ease(Tween.EASE_OUT)
+	scale_tween.tween_property(sprite, "scale", original_scale, 0.15).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_BACK)
+	
+	# Screen shake
+	_screen_shake(0.12, 5.0)
 
 
 ## Specific abilities

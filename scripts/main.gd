@@ -407,11 +407,15 @@ func _on_menu_pressed() -> void:
 
 ## Open Aether Sanctum for meta-progression
 func _on_sanctum_pressed() -> void:
+	print("[Main] Sanctum button pressed!")
 	if meta_progression_ui:
+		print("[Main] Opening meta progression UI...")
 		# Hide game over screen while sanctum is open
 		if game_over_screen:
 			game_over_screen.visible = false
 		meta_progression_ui.open()
+	else:
+		print("[Main] ERROR: meta_progression_ui is null!")
 
 
 func _on_sanctum_closed() -> void:

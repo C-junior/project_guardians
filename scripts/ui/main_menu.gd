@@ -31,8 +31,21 @@ func _on_new_game_pressed() -> void:
 
 
 func _on_progression_pressed() -> void:
-	# TODO: Open meta-progression shop
-	print("[Menu] Meta-Progression not yet implemented")
+	# Open the Aether Sanctum (meta-progression) UI
+	var main = get_parent()
+	if main:
+		var sanctum = main.get_node_or_null("MetaProgressionUI")
+		if sanctum:
+			# Hide main menu while sanctum is open
+			visible = false
+			sanctum.open()
+			# Connect to close signal if not already
+			if not sanctum.sanctum_closed.is_connected(_on_sanctum_closed):
+				sanctum.sanctum_closed.connect(_on_sanctum_closed)
+		else:
+			print("[Menu] MetaProgressionUI not found in Main scene")
+	else:
+		print("[Menu] Could not find parent Main node")
 
 
 func _on_settings_pressed() -> void:
@@ -42,3 +55,10 @@ func _on_settings_pressed() -> void:
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
+
+
+## Called when sanctum closes to show menu again
+func _on_sanctum_closed() -> void:
+	visible = true
+	_update_essence_display()  # Refresh in case player spent essence
+

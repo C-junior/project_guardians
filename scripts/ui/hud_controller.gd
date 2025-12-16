@@ -302,7 +302,7 @@ func show_wave_complete() -> void:
 	
 	# Show combo bonus if combo system active
 	if ComboManager and ComboManager.current_combo > 1:
-		stats_label.text += " (x%.1f combo!)" % ComboManager.get_multiplier()
+		stats_label.text += " (x%.1f combo!)" % ComboManager.get_combo_multiplier()
 	
 	# Victory green flash
 	var victory_flash = ColorRect.new()

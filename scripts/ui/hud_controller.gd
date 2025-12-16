@@ -281,6 +281,29 @@ func show_wave_complete() -> void:
 	wave_complete_panel.pivot_offset = wave_complete_panel.size / 2
 	wave_complete_panel.modulate.a = 1.0
 	
+	# Update completion label with stats
+	var complete_label = wave_complete_panel.get_node_or_null("VBox/WaveCompleteLabel")
+	if complete_label:
+		var wave = GameManager.current_wave
+		var gold_earned = 75 + (wave * 15)  # Match GameManager formula
+		complete_label.text = "✨ WAVE %d COMPLETE! ✨" % wave
+	
+	# Add stats summary if not exists
+	var stats_label = wave_complete_panel.get_node_or_null("VBox/StatsLabel")
+	if not stats_label:
+		stats_label = Label.new()
+		stats_label.name = "StatsLabel"
+		stats_label.add_theme_font_size_override("font_size", 16)
+		stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		wave_complete_panel.get_node("VBox").add_child(stats_label)
+	
+	var gold_earned = 75 + (GameManager.current_wave * 15)
+	stats_label.text = "Kills: %d | +%d Gold" % [kills_this_wave, gold_earned]
+	
+	# Show combo bonus if combo system active
+	if ComboManager and ComboManager.current_combo > 1:
+		stats_label.text += " (x%.1f combo!)" % ComboManager.get_multiplier()
+	
 	# Victory green flash
 	var victory_flash = ColorRect.new()
 	victory_flash.name = "VictoryFlash"
@@ -293,6 +316,9 @@ func show_wave_complete() -> void:
 	flash_tween.tween_property(victory_flash, "color:a", 0.0, 0.5)
 	flash_tween.tween_callback(victory_flash.queue_free)
 	
+	# Spawn confetti particles! 🎉
+	_spawn_confetti()
+	
 	# Panel animation
 	var tween = create_tween()
 	
@@ -301,7 +327,7 @@ func show_wave_complete() -> void:
 	tween.tween_property(wave_complete_panel, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC)
 	
 	# Hold then shrink out
-	tween.tween_interval(1.5)
+	tween.tween_interval(1.8)
 	tween.tween_property(wave_complete_panel, "scale", Vector2(1.1, 1.1), 0.1)
 	tween.tween_property(wave_complete_panel, "scale", Vector2.ZERO, 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
 	tween.parallel().tween_property(wave_complete_panel, "modulate:a", 0.0, 0.2)
@@ -310,6 +336,42 @@ func show_wave_complete() -> void:
 		wave_complete_panel.modulate.a = 1.0
 		wave_complete_panel.scale = Vector2.ONE
 	)
+
+
+## JUICE: Confetti particle effect for wave complete
+func _spawn_confetti() -> void:
+	var viewport_size = get_viewport().get_visible_rect().size
+	var confetti_colors = [
+		Color(1.0, 0.3, 0.3),  # Red
+		Color(0.3, 1.0, 0.3),  # Green
+		Color(0.3, 0.3, 1.0),  # Blue
+		Color(1.0, 1.0, 0.3),  # Yellow
+		Color(1.0, 0.3, 1.0),  # Magenta
+		Color(0.3, 1.0, 1.0),  # Cyan
+	]
+	
+	for i in range(20):
+		var confetti = ColorRect.new()
+		confetti.size = Vector2(randf_range(8, 16), randf_range(8, 16))
+		confetti.color = confetti_colors[randi() % confetti_colors.size()]
+		confetti.position = Vector2(randf_range(0, viewport_size.x), -20)
+		confetti.rotation = randf_range(0, TAU)
+		confetti.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(confetti)
+		
+		# Animate falling with spin
+		var fall_time = randf_range(1.5, 2.5)
+		var end_y = viewport_size.y + 50
+		var x_drift = randf_range(-100, 100)
+		
+		var tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(confetti, "position:y", end_y, fall_time).set_ease(Tween.EASE_IN)
+		tween.tween_property(confetti, "position:x", confetti.position.x + x_drift, fall_time)
+		tween.tween_property(confetti, "rotation", confetti.rotation + TAU * 2, fall_time)
+		tween.tween_property(confetti, "modulate:a", 0.0, fall_time * 0.8).set_delay(fall_time * 0.2)
+		tween.set_parallel(false)
+		tween.tween_callback(confetti.queue_free)
 
 
 func _process(_delta: float) -> void:

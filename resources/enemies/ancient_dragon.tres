@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://o7oblwetxv2g"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/slime.jpg" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "ancient_dragon"
+display_name = "Ancient Dragon"
+sprite_texture = ExtResource("2_sprite")
+max_health = 1000.0
+move_speed = 35.0
+damage_to_crystal = 100
+gold_reward = 250
+is_flying = true
+is_boss = true
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = false
+has_shield = false
+splits_on_death = false
+scale_factor = 2.5
+tint_color = Color(1.0, 0.4, 0.2, 1)

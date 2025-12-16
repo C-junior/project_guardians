@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://main001"]
+[gd_scene load_steps=11 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" uid="uid://ijmr5wlpupyw" path="res://scripts/main.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://rena001" path="res://scenes/combat/arena.tscn" id="2_arena"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/inventory_ui.tscn" id="7_inventory"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ascension_ui.tscn" id="8_ascension"]
 [ext_resource type="PackedScene" uid="uid://dvg0rj0582441" path="res://scenes/ui/blessing_selection_ui.tscn" id="9_b1x3f"]
+[ext_resource type="PackedScene" uid="uid://csanctum001" path="res://scenes/ui/meta_progression_ui.tscn" id="10_sanctum"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_script")
@@ -80,8 +81,16 @@ text = "Aether Essence Earned: 0"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="GameOverScreen/Panel/VBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
+
+[node name="SanctumButton" type="Button" parent="GameOverScreen/Panel/VBox"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.7, 1, 1)
+text = "✨ Aether Sanctum"
 
 [node name="RestartButton" type="Button" parent="GameOverScreen/Panel/VBox"]
 custom_minimum_size = Vector2(200, 50)
@@ -98,3 +107,7 @@ theme_override_font_sizes/font_size = 18
 text = "Main Menu"
 
 [node name="BlessingSelectionUI" parent="." instance=ExtResource("9_b1x3f")]
+
+[node name="MetaProgressionUI" parent="." instance=ExtResource("10_sanctum")]
+visible = false
+

@@ -1,0 +1,135 @@
+[gd_scene load_steps=2 format=3 uid="uid://csanctum001"]
+
+[ext_resource type="Script" path="res://scripts/ui/meta_progression_ui.gd" id="1_script"]
+
+[node name="MetaProgressionUI" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_script")
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.08, 0.15, 0.95)
+
+[node name="Title" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 30.0
+offset_right = 150.0
+offset_bottom = 70.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 32
+text = "✨ AETHER SANCTUM ✨"
+horizontal_alignment = 1
+
+[node name="EssenceLabel" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 80.0
+offset_right = 100.0
+offset_bottom = 110.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "⭐ Aether Essence: 0"
+horizontal_alignment = 1
+
+[node name="UnlocksLabel" type="Label" parent="Panel"]
+layout_mode = 1
+offset_left = 80.0
+offset_top = 140.0
+offset_right = 280.0
+offset_bottom = 170.0
+theme_override_font_sizes/font_size = 18
+text = "🔓 UNLOCK NEW CONTENT"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel"]
+layout_mode = 1
+offset_left = 60.0
+offset_top = 180.0
+offset_right = 380.0
+offset_bottom = 480.0
+
+[node name="UnlocksContainer" type="VBoxContainer" parent="Panel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="UpgradesLabel" type="Label" parent="Panel"]
+layout_mode = 1
+offset_left = 480.0
+offset_top = 140.0
+offset_right = 720.0
+offset_bottom = 170.0
+theme_override_font_sizes/font_size = 18
+text = "📈 PERMANENT UPGRADES"
+
+[node name="UpgradesPanel" type="Panel" parent="Panel"]
+layout_mode = 1
+offset_left = 460.0
+offset_top = 180.0
+offset_right = 780.0
+offset_bottom = 480.0
+
+[node name="UpgradesContainer" type="VBoxContainer" parent="Panel/UpgradesPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="CloseButton" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -70.0
+offset_right = 80.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "Return to Menu"
+
+[node name="HintLabel" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -75.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Earn Aether Essence by surviving waves. 10 AE per wave!"
+horizontal_alignment = 1

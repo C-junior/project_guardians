@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://161i4otbldrc"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/orc_boss.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "shielded_knight"
+display_name = "Shielded Knight"
+sprite_texture = ExtResource("2_sprite")
+max_health = 80.0
+move_speed = 40.0
+damage_to_crystal = 15
+gold_reward = 15
+is_flying = false
+is_boss = false
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = false
+has_shield = true
+frontal_armor = 0.75
+splits_on_death = false
+scale_factor = 0.9
+tint_color = Color(0.7, 0.7, 0.8, 1)

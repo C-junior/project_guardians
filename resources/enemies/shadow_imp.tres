@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://cshadowimp001"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/goblin.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "shadow_imp"
+display_name = "Shadow Imp"
+sprite_texture = ExtResource("2_sprite")
+max_health = 25.0
+move_speed = 55.0
+damage_to_crystal = 8
+gold_reward = 12
+is_flying = false
+is_boss = false
+is_undead = false
+is_demon = true
+can_teleport = true
+teleport_cooldown = 3.0
+teleport_distance = 80.0
+can_summon = false
+has_shield = false
+splits_on_death = false
+scale_factor = 0.6
+tint_color = Color(0.4, 0.3, 0.6, 1)

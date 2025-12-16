@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://cnecrolord001"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/necromancer.jpg" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "necromancer_lord"
+display_name = "Necromancer Lord"
+sprite_texture = ExtResource("2_sprite")
+max_health = 600.0
+move_speed = 25.0
+damage_to_crystal = 75
+gold_reward = 150
+is_flying = false
+is_boss = true
+is_undead = true
+is_demon = false
+can_teleport = false
+can_summon = true
+summon_cooldown = 6.0
+summon_enemy_id = "goblin"
+summon_count = 3
+has_shield = false
+splits_on_death = false
+scale_factor = 2.0
+tint_color = Color(0.6, 0.3, 0.8, 1)

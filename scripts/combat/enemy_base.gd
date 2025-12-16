@@ -33,6 +33,13 @@ var slow_timer: float = 0.0
 var is_frozen: bool = false
 var freeze_timer: float = 0.0
 
+# Elite system
+enum EliteModifier { NONE, ENRAGED, ARMORED, SWIFT, VAMPIRIC, SPLITTING }
+var elite_modifier: EliteModifier = EliteModifier.NONE
+var elite_damage_mult: float = 1.0  # For ENRAGED
+var elite_armor: float = 0.0  # For ARMORED
+var elite_speed_mult: float = 1.0  # For SWIFT, ENRAGED
+
 # Special abilities
 var can_summon: bool = false
 var can_teleport: bool = false
@@ -105,9 +112,58 @@ func setup(data: Resource, wave: int) -> void:
 	
 	_update_health_bar()
 	
-	print("[Enemy] %s spawned - HP: %.0f, SPD: %.0f, Gold: %d" % [
-		data.display_name, max_health, move_speed, gold_reward
+	print("[Enemy] %s spawned - HP: %.0f, SPD: %.0f, Gold: %d%s" % [
+		data.display_name, max_health, move_speed, gold_reward,
+		" [ELITE: %s]" % EliteModifier.keys()[elite_modifier] if elite_modifier != EliteModifier.NONE else ""
 	])
+
+
+## Apply elite modifier to this enemy
+func apply_elite(modifier: EliteModifier) -> void:
+	elite_modifier = modifier
+	
+	match modifier:
+		EliteModifier.ENRAGED:
+			# +50% speed, deals more crystal damage
+			elite_speed_mult = 1.5
+			elite_damage_mult = 1.3
+			damage_to_crystal = int(damage_to_crystal * 1.3)
+			gold_reward = int(gold_reward * 1.5)  # Better reward
+			if sprite:
+				sprite.modulate = Color(1.0, 0.4, 0.4)  # Red tint
+		EliteModifier.ARMORED:
+			# 40% damage reduction
+			elite_armor = 0.4
+			max_health *= 1.25  # Also slightly more HP
+			current_health = max_health
+			gold_reward = int(gold_reward * 1.5)
+			if sprite:
+				sprite.modulate = Color(0.7, 0.7, 0.8)  # Metallic
+		EliteModifier.SWIFT:
+			# +80% movement speed
+			elite_speed_mult = 1.8
+			gold_reward = int(gold_reward * 1.5)
+			if sprite:
+				sprite.modulate = Color(0.6, 0.9, 1.0)  # Light blue
+		EliteModifier.VAMPIRIC:
+			# Heals when damaging crystal (handled in _reach_crystal)
+			max_health *= 1.2
+			current_health = max_health
+			gold_reward = int(gold_reward * 1.5)
+			if sprite:
+				sprite.modulate = Color(0.5, 0.9, 0.5)  # Green
+		EliteModifier.SPLITTING:
+			# Spawns 2 mini versions on death (extend existing split logic)
+			gold_reward = int(gold_reward * 1.3)
+			if sprite:
+				sprite.modulate = Color(0.9, 0.6, 0.9)  # Purple/pink
+	
+	# Scale up elite enemies slightly
+	if sprite and elite_modifier != EliteModifier.NONE:
+		sprite.scale *= 1.15
+	
+	_update_health_bar()
+	print("[Enemy] Applied elite modifier: %s" % EliteModifier.keys()[modifier])
 
 
 func _physics_process(delta: float) -> void:
@@ -118,8 +174,8 @@ func _physics_process(delta: float) -> void:
 	if is_frozen or is_stunned:
 		return
 	
-	# Calculate actual speed
-	var actual_speed = move_speed
+	# Calculate actual speed (with elite modifier)
+	var actual_speed = move_speed * elite_speed_mult
 	if is_slowed:
 		actual_speed *= (1.0 - slow_amount)
 	
@@ -169,6 +225,10 @@ func _update_status_effects(delta: float) -> void:
 ## Take damage
 func take_damage(amount: float, source: Node = null) -> void:
 	var final_damage = amount
+	
+	# Elite armor reduction (ARMORED modifier)
+	if elite_armor > 0:
+		final_damage *= (1.0 - elite_armor)
 	
 	# Frontal shield check
 	if has_shield and source:
@@ -348,10 +408,20 @@ func _die() -> void:
 	# Spawn gold popup (show actual earned amount)
 	_spawn_gold_popup(actual_gold)
 	
-	# Split on death
-	if enemy_data.splits_on_death and arena:
-		for i in range(enemy_data.split_count):
-			var split_data = load("res://resources/enemies/%s.tres" % enemy_data.split_enemy_id)
+	# Split on death (either from enemy data OR from SPLITTING elite modifier)
+	var should_split = enemy_data.splits_on_death
+	var split_id = enemy_data.split_enemy_id if enemy_data else "goblin"
+	var split_num = enemy_data.split_count if enemy_data else 2
+	
+	# SPLITTING elite modifier forces split behavior
+	if elite_modifier == EliteModifier.SPLITTING:
+		should_split = true
+		split_id = "goblin"  # Split into goblins
+		split_num = 2
+	
+	if should_split and arena:
+		for i in range(split_num):
+			var split_data = load("res://resources/enemies/%s.tres" % split_id)
 			if split_data:
 				var split = arena.spawn_enemy(split_data)
 				if split and path_follow:

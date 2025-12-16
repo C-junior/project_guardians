@@ -17,8 +17,10 @@ extends Node2D
 # Game over UI
 @onready var waves_survived_label: Label = $GameOverScreen/Panel/VBox/WavesSurvivedLabel
 @onready var essence_label: Label = $GameOverScreen/Panel/VBox/EssenceLabel
+@onready var sanctum_button: Button = $GameOverScreen/Panel/VBox/SanctumButton
 @onready var restart_button: Button = $GameOverScreen/Panel/VBox/RestartButton
 @onready var menu_button: Button = $GameOverScreen/Panel/VBox/MenuButton
+@onready var meta_progression_ui: CanvasLayer = $MetaProgressionUI
 
 # Statue placement state
 var pending_statue_to_place: Resource = null
@@ -84,6 +86,12 @@ func _ready() -> void:
 		restart_button.pressed.connect(_on_restart_pressed)
 	if menu_button:
 		menu_button.pressed.connect(_on_menu_pressed)
+	if sanctum_button:
+		sanctum_button.pressed.connect(_on_sanctum_pressed)
+	
+	# Connect meta progression UI
+	if meta_progression_ui:
+		meta_progression_ui.sanctum_closed.connect(_on_sanctum_closed)
 	
 	# Load saved progress
 	GameManager.load_meta_progression()
@@ -395,6 +403,21 @@ func _on_restart_pressed() -> void:
 
 func _on_menu_pressed() -> void:
 	GameManager.current_state = GameManager.GameState.MENU
+
+
+## Open Aether Sanctum for meta-progression
+func _on_sanctum_pressed() -> void:
+	if meta_progression_ui:
+		# Hide game over screen while sanctum is open
+		if game_over_screen:
+			game_over_screen.visible = false
+		meta_progression_ui.open()
+
+
+func _on_sanctum_closed() -> void:
+	# Show game over screen again
+	if game_over_screen:
+		game_over_screen.visible = true
 
 
 func _reset_arena() -> void:

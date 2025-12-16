@@ -22,7 +22,7 @@ var current_state: GameState = GameState.MENU:
 		game_state_changed.emit(value)
 
 # Player Resources
-var gold: int = 150:
+var gold: int = 200:
 	set(value):
 		gold = max(0, value)
 		gold_changed.emit(gold)
@@ -46,8 +46,8 @@ var current_wave: int = 0:
 
 # Shop State
 var reroll_count: int = 0
-var reroll_base_cost: int = 50
-var reroll_increment: int = 25
+var reroll_base_cost: int = 30
+var reroll_increment: int = 20
 
 # Current Run Data
 var placed_statues: Array[Node] = []
@@ -83,7 +83,7 @@ func _ready() -> void:
 
 ## Start a new run
 func start_new_run() -> void:
-	gold = 150 + permanent_gold_bonus
+	gold = 200 + permanent_gold_bonus
 	crystal_health = crystal_max_health
 	current_wave = 0
 	reroll_count = 0
@@ -112,7 +112,7 @@ func _reset_inventory() -> void:
 ## Called when combat wave ends
 func end_wave(victory: bool) -> void:
 	if victory:
-		var wave_bonus = 50 + (current_wave * 10)
+		var wave_bonus = 75 + (current_wave * 15)
 		add_gold(wave_bonus)
 		print("[GameManager] Wave %d complete! Bonus: %d gold" % [current_wave, wave_bonus])
 		

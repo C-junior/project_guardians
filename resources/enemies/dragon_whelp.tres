@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://d2847g76wqd4s"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/slime.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "dragon_whelp"
+display_name = "Dragon Whelp"
+sprite_texture = ExtResource("2_sprite")
+max_health = 45.0
+move_speed = 60.0
+damage_to_crystal = 12
+gold_reward = 18
+is_flying = true
+is_boss = false
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = false
+has_shield = false
+splits_on_death = false
+scale_factor = 0.8
+tint_color = Color(1.0, 0.5, 0.3, 1)

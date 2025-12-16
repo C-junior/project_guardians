@@ -212,8 +212,8 @@ func remove_statue(statue: Node2D) -> void:
 		statue.queue_free()
 
 
-## Enemy spawning
-func spawn_enemy(enemy_data: Resource) -> Node2D:
+## Enemy spawning (with optional elite modifier)
+func spawn_enemy(enemy_data: Resource, force_elite: int = -1) -> Node2D:
 	var enemy = enemy_scene.instantiate()
 	enemy.position = spawn_point.position
 	enemy.path = enemy_path
@@ -223,6 +223,14 @@ func spawn_enemy(enemy_data: Resource) -> Node2D:
 	enemies_container.add_child(enemy)
 	enemy.setup(enemy_data, GameManager.current_wave)
 	
+	# Apply elite modifier if specified or roll for random elite
+	var elite_mod = force_elite
+	if elite_mod == -1:
+		elite_mod = _roll_elite_modifier(enemy_data)
+	
+	if elite_mod > 0:
+		enemy.apply_elite(elite_mod)
+	
 	active_enemies.append(enemy)
 	
 	enemy.died.connect(_on_enemy_died.bind(enemy))
@@ -230,6 +238,28 @@ func spawn_enemy(enemy_data: Resource) -> Node2D:
 	
 	enemy_spawned.emit(enemy)
 	return enemy
+
+
+## Roll for elite modifier based on wave number
+func _roll_elite_modifier(enemy_data: Resource) -> int:
+	# Bosses don't become elites
+	if enemy_data and enemy_data.is_boss:
+		return 0
+	
+	var wave = GameManager.current_wave
+	var elite_chance = 0.0
+	
+	# Elite spawn chances based on wave
+	if wave >= 12:
+		elite_chance = 0.30  # 30% at wave 12+
+	elif wave >= 8:
+		elite_chance = 0.15  # 15% at wave 8+
+	
+	if randf() < elite_chance:
+		# Random elite type (1-5 for the 5 modifier types)
+		return randi_range(1, 5)
+	
+	return 0
 
 
 func _on_enemy_died(actual_gold: int, enemy: Node) -> void:

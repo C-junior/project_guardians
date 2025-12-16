@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://csanctum001"]
 
-[ext_resource type="Script" path="res://scripts/ui/meta_progression_ui.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://ccxhx7p2sjo4f" path="res://scripts/ui/meta_progression_ui.gd" id="1_script"]
 
 [node name="MetaProgressionUI" type="CanvasLayer"]
 layer = 10
@@ -46,8 +46,8 @@ offset_top = 80.0
 offset_right = 100.0
 offset_bottom = 110.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 20
 text = "⭐ Aether Essence: 0"
 horizontal_alignment = 1
 
@@ -129,7 +129,7 @@ offset_right = 200.0
 offset_bottom = -75.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
 text = "Earn Aether Essence by surviving waves. 10 AE per wave!"
 horizontal_alignment = 1

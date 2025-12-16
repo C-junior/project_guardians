@@ -88,8 +88,8 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.9, 0.7, 1, 1)
+theme_override_font_sizes/font_size = 18
 text = "✨ Aether Sanctum"
 
 [node name="RestartButton" type="Button" parent="GameOverScreen/Panel/VBox"]
@@ -107,7 +107,7 @@ theme_override_font_sizes/font_size = 18
 text = "Main Menu"
 
 [node name="BlessingSelectionUI" parent="." instance=ExtResource("9_b1x3f")]
+visible = false
 
 [node name="MetaProgressionUI" parent="." instance=ExtResource("10_sanctum")]
 visible = false
-

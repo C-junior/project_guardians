@@ -276,17 +276,17 @@ After game over, show:
 
 ## 📋 Implementation Phases
 
-### Phase 1: Balance & Bug Fixes (1-2 days)
-- [ ] Adjust statue stats in `.tres` files
-- [ ] Fix economy values in `GameManager.gd`
-- [ ] Smooth difficulty curve in `wave_data.gd`
-- [ ] Test waves 1-15 for feel
+### Phase 1: Balance & Bug Fixes ✅ COMPLETE
+- [x] Adjust statue stats in `.tres` files
+- [x] Fix economy values in `GameManager.gd`
+- [x] Smooth difficulty curve in `wave_data.gd`
+- [x] Test waves 1-15 for feel
 
-### Phase 2: Core Missing Features (3-5 days)
-- [ ] Meta-progression UI + save/load
-- [ ] Elite enemy modifiers
-- [ ] 4 missing enemy types
-- [ ] 2 missing bosses (Necromancer Lord, Ancient Dragon)
+### Phase 2: Core Missing Features ✅ COMPLETE
+- [x] Meta-progression UI + save/load
+- [x] Elite enemy modifiers (all 5 types)
+- [x] 4 new enemy types (dragon_whelp, shadow_imp, shielded_knight, troll)
+- [x] 2 new bosses (Necromancer Lord wave 15, Ancient Dragon wave 20)
 
 ### Phase 3: Game Feel (2-3 days)
 - [ ] Combo system

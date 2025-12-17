@@ -14,6 +14,7 @@ class_name StatueData
 @export var attack_speed: float = 1.0  # Attacks per second
 @export var attack_range: float = 150.0  # Pixels
 @export var max_health: float = 100.0
+@export var base_crit_chance: float = 0.0  # Base critical hit chance (0.0 - 1.0)
 
 @export_group("Ability")
 @export var ability_name: String = ""

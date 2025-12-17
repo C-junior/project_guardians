@@ -22,11 +22,17 @@ signal start_wave_button_pressed()
 @onready var shop_button: Button = $ActionButtons/ShopButton
 @onready var start_wave_button: Button = $ActionButtons/StartWaveButton
 
-# Kill counter
+# KillCounter
 var kills_this_wave: int = 0
 
 # Ability button scene
 var ability_button_scene: PackedScene
+
+# CRYSTAL DANGER EFFECTS
+var danger_vignette: ColorRect = null
+var danger_label: Label = null
+var danger_pulse_timer: float = 0.0
+var is_in_danger: bool = false
 
 
 func _ready() -> void:
@@ -53,6 +59,9 @@ func _ready() -> void:
 	_on_crystal_health_changed(GameManager.crystal_health, GameManager.crystal_max_health)
 	_on_wave_changed(GameManager.current_wave)
 	_update_action_buttons_visibility()
+	
+	# Setup danger effects
+	_setup_danger_effects()
 
 
 func _on_inventory_pressed() -> void:
@@ -374,7 +383,79 @@ func _spawn_confetti() -> void:
 		tween.tween_callback(confetti.queue_free)
 
 
-func _process(_delta: float) -> void:
+
+## JUICE: Confetti particle effect for wave complete
+func _spawn_confetti() -> void:
+var viewport_size = get_viewport().get_visible_rect().size
+var confetti_colors = [
+Color(1.0, 0.3, 0.3),  # Red
+Color(0.3, 1.0, 0.3),  # Green
+Color(0.3, 0.3, 1.0),  # Blue
+Color(1.0, 1.0, 0.3),  # Yellow
+Color(1.0, 0.3, 1.0),  # Magenta
+Color(0.3, 1.0, 1.0),  # Cyan
+]
+
+for i in range(20):
+var confetti = ColorRect.new()
+confetti.size = Vector2(randf_range(8, 16), randf_range(8, 16))
+confetti.color = confetti_colors[randi() % confetti_colors.size()]
+confetti.position = Vector2(randf_range(0, viewport_size.x), -20)
+confetti.rotation = randf_range(0, TAU)
+confetti.mouse_filter = Control.MOUSE_FILTER_IGNORE
+add_child(confetti)
+
+# Animate falling with spin
+var fall_time = randf_range(1.5, 2.5)
+var end_y = viewport_size.y + 50
+var x_drift = randf_range(-100, 100)
+
+var tween = create_tween()
+tween.set_parallel(true)
+tween.tween_property(confetti, "position:y", end_y, fall_time).set_ease(Tween.EASE_IN)
+tween.tween_property(confetti, "position:x", confetti.position.x + x_drift, fall_time)
+tween.tween_property(confetti, "rotation", confetti.rotation + TAU * 2, fall_time)
+tween.tween_property(confetti, "modulate:a", 0.0, fall_time * 0.8).set_delay(fall_time * 0.2)
+tween.set_parallel(false)
+tween.tween_callback(confetti.queue_free)
+
+# Also spawn gold shower
+var gold_earned = 75 + (GameManager.current_wave * 15)
+_spawn_gold_shower(gold_earned)
+
+
+## JUICE: Gold coin shower effect for wave complete
+func _spawn_gold_shower(gold_amount: int) -> void:
+var viewport_size = get_viewport().get_visible_rect().size
+var num_coins = min(gold_amount / 10, 30)  # 1 coin per 10 gold, max 30 coins
+
+for i in range(num_coins):
+var coin = Label.new()
+coin.text = ""
+coin.add_theme_font_size_override("font_size", 24)
+coin.position = Vector2(randf_range(viewport_size.x * 0.2, viewport_size.x * 0.8), -30)
+coin.rotation = randf_range(0, TAU)
+coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+add_child(coin)
+
+# Animate falling with bounce at bottom
+var fall_time = randf_range(0.8, 1.2)
+var end_y = viewport_size.y - randf_range(50, 150)
+var x_drift = randf_range(-50, 50)
+
+var tween = create_tween()
+tween.set_parallel(true)
+tween.tween_property(coin, "position:y", end_y, fall_time).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BOUNCE)
+tween.tween_property(coin, "position:x", coin.position.x + x_drift, fall_time)
+tween.tween_property(coin, "rotation", coin.rotation + TAU, fall_time)
+tween.set_parallel(false)
+# Hold at bottom briefly then fade
+tween.tween_interval(0.5)
+tween.tween_property(coin, "modulate:a", 0.0, 0.3)
+tween.tween_callback(coin.queue_free)
+
+
+func _process\(delta: float\) -> void:
 	# Update ability buttons cooldown states
 	for button in ability_bar.get_children():
 		if button.has_meta("statue"):
@@ -384,6 +465,9 @@ func _process(_delta: float) -> void:
 				button.queue_free()
 				continue
 			_update_ability_button(button, statue)
+	
+	# Update danger effects based on crystal health
+	_update_danger_effects(delta)
 
 
 ## Show red screen edge flash when crystal takes damage
@@ -442,3 +526,90 @@ func _show_gold_float(amount: int, world_pos: Vector2) -> void:
 	tween.tween_property(label, "modulate:a", 0.0, 0.8)
 	tween.set_parallel(false)
 	tween.tween_callback(label.queue_free)
+
+
+## CRYSTAL DANGER EFFECTS: Setup vignette and danger label
+func _setup_danger_effects() -> void:
+	# Create red vignette overlay (hidden by default)
+	danger_vignette = ColorRect.new()
+	danger_vignette.name = "DangerVignette"
+	danger_vignette.color = Color(1.0, 0.0, 0.0, 0.0)  # Red, fully transparent
+	danger_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+	danger_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	danger_vignette.z_index = 50  # Above most UI
+	add_child(danger_vignette)
+	
+	# Create "DANGER!" label (hidden by default)
+	danger_label = Label.new()
+	danger_label.name = "DangerLabel"
+	danger_label.text = "⚠️ DANGER! ⚠️"
+	danger_label.add_theme_font_size_override("font_size", 32)
+	danger_label.add_theme_color_override("font_color", Color.RED)
+	danger_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	danger_label.add_theme_constant_override("outline_size", 4)
+	danger_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	danger_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	danger_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	danger_label.offset_top = 100
+	danger_label.modulate.a = 0.0
+	danger_label.z_index = 51
+	add_child(danger_label)
+
+
+## CRYSTAL DANGER EFFECTS: Update based on crystal health
+func _update_danger_effects(delta: float) -> void:
+	var danger_threshold = GameManager.crystal_max_health * 0.3
+	var current_health = GameManager.crystal_health
+	
+	if current_health <= danger_threshold and current_health > 0:
+		# IN DANGER!
+		if not is_in_danger:
+			is_in_danger = true
+			print("[HUD] Crystal in danger! HP: %d/%d" % [current_health, GameManager.crystal_max_health])
+		
+		# Calculate danger intensity (0.0 to 1.0, higher when HP is lower)
+		var danger_pct = float(current_health) / danger_threshold
+		var intensity = 1.0 - danger_pct  # 0% HP = 1.0, 30% HP = 0.0
+		
+		# Update vignette opacity
+		if danger_vignette:
+			danger_vignette.color.a = 0.2 + (intensity * 0.3)  # 0.2 to 0.5 alpha
+		
+		# Pulse "DANGER!" text
+		if danger_label:
+			danger_pulse_timer += delta
+			var pulse = abs(sin(danger_pulse_timer * 3.0))  # Pulse 3x per second
+			danger_label.modulate.a = 0.5 + (pulse * 0.5)  # 0.5 to 1.0 alpha
+			
+			# Scale pulse for extra urgency
+			var scale_pulse = 1.0 + (pulse * 0.15 * intensity)
+			danger_label.scale = Vector2(scale_pulse, scale_pulse)
+		
+		# Screen shake (more intense as HP drops)
+		if danger_pulse_timer >= 1.0 and intensity > 0.5:  # Only shake when very low
+			danger_pulse_timer = 0.0
+			_danger_screen_shake(intensity * 5.0)  # Max 5px shake
+	else:
+		# SAFE - hide danger effects
+		if is_in_danger:
+			is_in_danger = false
+			print("[HUD] Crystal safe!")
+		
+		if danger_vignette:
+			danger_vignette.color.a = 0.0
+		if danger_label:
+			danger_label.modulate.a = 0.0
+
+
+## CRYSTAL DANGER EFFECTS: Small screen shake for danger
+func _danger_screen_shake(intensity: float) -> void:
+	var camera = get_viewport().get_camera_2d()
+	if not camera:
+		return
+	
+	var original_offset = camera.offset
+	var shake_tween = create_tween()
+	for i in range(4):
+		var offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+		shake_tween.tween_property(camera, "offset", original_offset + offset, 0.05)
+	shake_tween.tween_property(camera, "offset", original_offset, 0.05)

@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://menu001" path="res://scenes/main/main_menu.tscn" id="5_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/statue_selection_ui.tscn" id="6_statue_selection"]
 [ext_resource type="PackedScene" path="res://scenes/ui/inventory_ui.tscn" id="7_inventory"]
-[ext_resource type="PackedScene" path="res://scenes/ui/ascension_ui.tscn" id="8_ascension"]
+[ext_resource type="PackedScene" uid="uid://bn4xo8cq7hx3r" path="res://scenes/ui/ascension_ui.tscn" id="8_ascension"]
 [ext_resource type="PackedScene" uid="uid://dvg0rj0582441" path="res://scenes/ui/blessing_selection_ui.tscn" id="9_b1x3f"]
 [ext_resource type="PackedScene" uid="uid://csanctum001" path="res://scenes/ui/meta_progression_ui.tscn" id="10_sanctum"]
 

@@ -128,8 +128,11 @@ func place_statue(statue_data: Resource, grid_pos: Vector2i, tier: int = 0) -> N
 	
 	occupy_cell(grid_pos)
 	
-	# JUICE: Placement celebration!
-	_placement_celebration(statue, grid_pos)
+	# JUICE: Different celebration for evolution vs normal placement
+	if tier > 0:
+		_evolution_materialization(statue, grid_pos, tier)
+	else:
+		_placement_celebration(statue, grid_pos)
 	
 	GameManager.register_statue(statue)
 	statue_placed.emit(statue, grid_pos)
@@ -184,6 +187,180 @@ func _placement_celebration(statue: Node2D, grid_pos: Vector2i) -> void:
 		var flash_tween = create_tween()
 		flash_tween.tween_property(cell, "color", Color(0.5, 1.0, 0.5, 0.8), 0.1)
 		flash_tween.tween_property(cell, "color", original_color, 0.2)
+
+
+## JUICE: SPECTACULAR evolution materialization effect for evolved statues!
+func _evolution_materialization(statue: Node2D, grid_pos: Vector2i, tier: int) -> void:
+	var world_pos = grid_to_world(grid_pos)
+	
+	# Get statue sprite for animation
+	var sprite = statue.get_node_or_null("Sprite")
+	if not sprite:
+		return
+	
+	# Get tier color for effects
+	var tier_color = EvolutionManager.get_tier_color(tier)
+	var tier_name = EvolutionManager.get_tier_name(tier)
+	
+	# START: Statue appears with divine glow
+	sprite.scale = Vector2.ZERO
+	sprite.modulate = tier_color * 2.0  # Bright divine glow
+	
+	# 1. Materialization with dramatic scale-up and glow
+	var appear_tween = create_tween()
+	appear_tween.set_parallel(true)
+	
+	# Scale from 0 with overshoot (divine arrival)
+	appear_tween.tween_property(sprite, "scale", sprite.scale * 1.3, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	
+	# Glow intensifies then normalizes
+	appear_tween.tween_property(sprite, "modulate", Color.WHITE, 0.4)
+	
+	# 2. Divine glow ring expands outward
+	var glow_ring = Node2D.new()
+	glow_ring.position = world_pos
+	glow_ring.z_index = 10
+	add_child(glow_ring)
+	
+	var glow_drawer = _EvolutionGlowRing.new()
+	glow_drawer.color = tier_color
+	glow_ring.add_child(glow_drawer)
+	
+	var ring_tween = create_tween()
+	ring_tween.tween_property(glow_drawer, "radius", 80.0, 0.5).set_ease(Tween.EASE_OUT)
+	ring_tween.parallel().tween_property(glow_drawer, "alpha", 0.0, 0.5)
+	ring_tween.tween_callback(glow_ring.queue_free)
+	
+	# 3. Tier stars appear one by one above statue
+	_animate_tier_stars(world_pos, tier, tier_color)
+	
+	# 4. Particle burst (more intense than normal placement)
+	for i in range(20):
+		var particle = Node2D.new()
+		particle.position = world_pos
+		particle.z_index = 12
+		add_child(particle)
+		
+		var particle_drawer = _SparkleParticle.new()
+		particle_drawer.particle_color = tier_color
+		particle.add_child(particle_drawer)
+		
+		var angle = (i / 20.0) * TAU
+		var direction = Vector2(cos(angle), sin(angle)) * randf_range(60, 100)
+		var particle_tween = create_tween()
+		particle_tween.tween_property(particle, "position", world_pos + direction, 0.6).set_ease(Tween.EASE_OUT)
+		particle_tween.parallel().tween_property(particle_drawer, "alpha", 0.0, 0.6)
+		particle_tween.tween_callback(particle.queue_free)
+	
+	# 5. Shockwave effect
+	EffectsManager.create_shockwave(self, world_pos, tier_color, 100.0, 0.4)
+	
+	# 6. Evolution announcement text
+	await get_tree().create_timer(0.15).timeout
+	_show_evolution_text(world_pos, tier_name, tier_color)
+	
+	# 7. Final bounce to normal scale
+	await appear_tween.finished
+	var bounce_tween = create_tween()
+	bounce_tween.tween_property(sprite, "scale", sprite.scale / 1.3, 0.15).set_ease(Tween.EASE_IN_OUT)
+
+
+## Animate tier stars appearing one by one
+func _animate_tier_stars(pos: Vector2, tier: int, color: Color) -> void:
+	var stars_to_show = tier + 1  # Tier 0 = 1 star, Tier 1 = 2 stars, etc
+	
+	for i in range(stars_to_show):
+		await get_tree().create_timer(0.12 * i).timeout
+		
+		# Create star
+		var star = Node2D.new()
+		star.position = pos + Vector2(-20 + i * 15, -80)
+		star.z_index = 15
+		add_child(star)
+		
+		var star_drawer = _TierStar.new()
+		star_drawer.color = color
+		star.add_child(star_drawer)
+		
+		# Pop in animation
+		star.scale = Vector2.ZERO
+		var star_tween = create_tween()
+		star_tween.tween_property(star, "scale", Vector2(1.2, 1.2), 0.1).set_ease(Tween.EASE_OUT)
+		star_tween.tween_property(star, "scale", Vector2.ONE, 0.08)
+		star_tween.tween_interval(1.0)
+		star_tween.tween_property(star_drawer, "alpha", 0.0, 0.3)
+		star_tween.tween_callback(star.queue_free)
+
+
+## Show evolution text announcement
+func _show_evolution_text(pos: Vector2, tier_name: String, color: Color) -> void:
+	var label = Label.new()
+	label.text = "%s EVOLVED!" % tier_name.to_upper()
+	label.position = pos + Vector2(-80, -100)
+	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 4)
+	label.z_index = 20
+	add_child(label)
+	
+	# Animate text
+	label.scale = Vector2.ZERO
+	label.modulate.a = 0.0
+	var text_tween = create_tween()
+	text_tween.tween_property(label, "scale", Vector2(1.3, 1.3), 0.15).set_ease(Tween.EASE_OUT)
+	text_tween.parallel().tween_property(label, "modulate:a", 1.0, 0.15)
+	text_tween.tween_property(label, "scale", Vector2.ONE, 0.1)
+	text_tween.tween_interval(1.5)
+	text_tween.tween_property(label, "position:y", label.position.y - 30, 0.3)
+	text_tween.parallel().tween_property(label, "modulate:a", 0.0, 0.3)
+	text_tween.tween_callback(label.queue_free)
+
+
+## Evolution glow ring effect
+class _EvolutionGlowRing extends Node2D:
+	var radius: float = 10.0
+	var alpha: float = 0.8
+	var color: Color = Color.WHITE
+	
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	
+	func _draw() -> void:
+		var ring_color = color
+		ring_color.a = alpha
+		draw_arc(Vector2.ZERO, radius, 0, TAU, 32, ring_color, 4.0)
+		# Inner glow
+		var inner_color = color
+		inner_color.a = alpha * 0.3
+		draw_circle(Vector2.ZERO, radius * 0.8, inner_color)
+
+
+## Tier star visual
+class _TierStar extends Node2D:
+	var color: Color = Color(1.0, 0.8, 0.2)
+	var alpha: float = 1.0
+	
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	
+	func _draw() -> void:
+		var star_color = color
+		star_color.a = alpha
+		var size = 8.0
+		
+		# 5-pointed star
+		var points = PackedVector2Array()
+		for i in range(10):
+			var angle = (i / 10.0) * TAU - PI / 2
+			var r = size if i % 2 == 0 else size * 0.4
+			points.append(Vector2(cos(angle) * r, sin(angle) * r))
+		
+		draw_colored_polygon(points, star_color)
+		# Inner bright core
+		draw_circle(Vector2.ZERO, size * 0.2, Color.WHITE)
+
+
 
 
 ## Simple sparkle particle for placement effect

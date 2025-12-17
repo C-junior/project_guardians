@@ -61,4 +61,3 @@ func _on_quit_pressed() -> void:
 func _on_sanctum_closed() -> void:
 	visible = true
 	_update_essence_display()  # Refresh in case player spent essence
-

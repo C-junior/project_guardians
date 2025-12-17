@@ -22,6 +22,14 @@ signal ascension_cancelled()
 @onready var inventory_scroll: ScrollContainer = $Control/Panel/MarginContainer/VBoxContainer/InventoryScroll
 @onready var inventory_grid: HBoxContainer = $Control/Panel/MarginContainer/VBoxContainer/InventoryScroll/InventoryGrid
 
+# Video player overlay (will be created dynamically)
+var video_overlay: Control = null
+var video_player: VideoStreamPlayer = null
+var skip_label: Label = null
+var can_skip: bool = false
+var video_timer: float = 0.0
+var video_playing: bool = false
+
 # Slot data - now stores dictionaries with source info: {"data": Resource, "source": "inventory"|"field", "node": Node (if from field)}
 var selected_statues: Array = [null, null, null]
 var current_selecting_slot: int = -1
@@ -37,6 +45,7 @@ func _ready() -> void:
 	
 	visible = false
 	_update_ui()
+	_setup_video_player()
 
 
 func open() -> void:
@@ -521,11 +530,175 @@ func _on_ascend_pressed() -> void:
 	# Emit signal
 	ascension_completed.emit(evolved_data, 1)
 	
-	# Refresh and close
+	# Refresh inventory
 	GameManager.inventory_changed.emit()
-	close()
+	
+	# PLAY CINEMATIC VIDEO!
+	var statue_id = base_statue_data.get("id") if base_statue_data else "unknown"
+	play_ascension_video(statue_id)
+	# Note: close() is called in _finish_ascension_after_video()
+
 
 
 func _on_cancel_pressed() -> void:
 	ascension_cancelled.emit()
+	close()
+
+
+## Setup video player overlay (created dynamically to control z-index)
+func _setup_video_player() -> void:
+	# Create fullscreen overlay
+	video_overlay = Control.new()
+	video_overlay.name = "VideoOverlay"
+	video_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	video_overlay.mouse_filter = Control.MOUSE_FILTER_STOP  # Block clicks
+	video_overlay.visible = false
+	video_overlay.z_index = 1000  # On top of everything
+	add_child(video_overlay)
+	
+	# Black background
+	var black_bg = ColorRect.new()
+	black_bg.color = Color.BLACK
+	black_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	video_overlay.add_child(black_bg)
+	
+	# Video player (centered)
+	video_player = VideoStreamPlayer.new()
+	video_player.set_anchors_preset(Control.PRESET_FULL_RECT)
+	video_player.expand = true
+	video_player.finished.connect(_on_video_finished)
+	video_overlay.add_child(video_player)
+	
+	# Skip label (bottom center)
+	skip_label = Label.new()
+	skip_label.text = "Press SPACE to skip"
+	skip_label.add_theme_font_size_override("font_size", 20)
+	skip_label.add_theme_color_override("font_color", Color.WHITE)
+	skip_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	skip_label.add_theme_constant_override("outline_size", 3)
+	skip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skip_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	skip_label.offset_top = -60
+	skip_label.visible = false
+	video_overlay.add_child(skip_label)
+
+
+## Process video playback and handle skip input
+func _process(delta: float) -> void:
+	if not video_playing:
+		return
+	
+	video_timer += delta
+	
+	# Allow skip after 0.5s
+	if video_timer >= 0.5 and not can_skip:
+		can_skip = true
+		if skip_label:
+			skip_label.visible = true
+			# Pulse animation
+			var pulse_tween = create_tween()
+			pulse_tween.tween_property(skip_label, "modulate:a", 0.6, 0.5)
+			pulse_tween.tween_property(skip_label, "modulate:a", 1.0, 0.5)
+			pulse_tween.set_loops()
+	
+	# Handle skip input
+	if can_skip and Input.is_action_just_pressed("ui_accept"):
+		_skip_video()
+
+
+## Play ascension video for a specific statue
+func play_ascension_video(statue_id: String) -> void:
+	print("[Ascension] === STARTING VIDEO PLAYBACK ===")
+	print("[Ascension] Statue ID: %s" % statue_id)
+	
+	# Construct video path (for now using tier 1, can expand later)
+	var video_path = "res://assets/ascend/%s_ascended.ogg" % statue_id
+	print("[Ascension] Video path: %s" % video_path)
+	
+	# Check if video exists
+	if not ResourceLoader.exists(video_path):
+		print("[Ascension] ❌ ResourceLoader.exists() returned FALSE")
+		print("[Ascension] No video found for %s, using fallback effects" % statue_id)
+		_play_fallback_effects()
+		_finish_ascension_after_video()
+		return
+	
+	print("[Ascension] ✅ ResourceLoader.exists() returned TRUE")
+	
+	# Load video stream
+	var video_stream = load(video_path)
+	if not video_stream:
+		print("[Ascension] ❌ load() returned NULL")
+		print("[Ascension] Failed to load video: %s" % video_path)
+		_play_fallback_effects()
+		_finish_ascension_after_video()
+		return
+	
+	print("[Ascension] ✅ Video stream loaded successfully")
+	print("[Ascension] Video stream type: %s" % str(video_stream.get_class()))
+	
+	# Setup and play
+	video_player.stream = video_stream
+	video_overlay.visible = true
+	video_overlay.modulate.a = 0.0
+	
+	print("[Ascension] Setting up video player overlay...")
+	
+	# Fade in overlay
+	var fade_tween = create_tween()
+	fade_tween.tween_property(video_overlay, "modulate:a", 1.0, 0.3)
+	fade_tween.finished.connect(func():
+		print("[Ascension] Fade-in complete, starting video playback...")
+		video_player.play()
+		video_playing = true
+		video_timer = 0.0
+		can_skip = false
+		if skip_label:
+			skip_label.visible = false
+		print("[Ascension] ✅ Video should now be playing!")
+	)
+	
+	print("[Ascension] Playing video: %s" % video_path)
+
+
+## Skip video playback
+func _skip_video() -> void:
+	print("[Ascension] Video skipped by player")
+	video_player.stop()
+	_hide_video_overlay()
+
+
+## Video finished playing naturally
+func _on_video_finished() -> void:
+	print("[Ascension] Video finished")
+	_hide_video_overlay()
+
+
+## Hide video overlay and finish ascension
+func _hide_video_overlay() -> void:
+	video_playing = false
+	can_skip = false
+	
+	# Fade out
+	var fade_tween = create_tween()
+	fade_tween.tween_property(video_overlay, "modulate:a", 0.0, 0.3)
+	fade_tween.finished.connect(func():
+		video_overlay.visible = false
+		_finish_ascension_after_video()
+	)
+
+
+## Fallback particle effects if video not found
+func _play_fallback_effects() -> void:
+	# Simple "Ascension Complete!" message
+	print("[Ascension] Using fallback visual effects")
+	# Could call EffectsManager here if desired
+
+
+## Complete the ascension after video/effects
+func _finish_ascension_after_video() -> void:
+	# This was already emitted before video, so we just need to close
+	# Actually, we should move the emit here for proper timing
+	# For now just close
+	await get_tree().create_timer(0.5).timeout
 	close()

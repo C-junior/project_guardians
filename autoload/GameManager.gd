@@ -492,28 +492,44 @@ func get_unlocked_statue_resources() -> Array[Resource]:
 	return statues
 
 
-
 ## RUN STATISTICS TRACKING
 
 func _reset_run_stats() -> void:
-	run_stats = {"waves_survived": 0, "total_kills": 0, "highest_combo": 0, "total_gold_earned": 0, "total_damage_dealt": 0, "favorite_statue": "", "statue_usage": {}}
+	run_stats = {
+		"waves_survived": 0,
+		"total_kills": 0,
+		"highest_combo": 0,
+		"total_gold_earned": 0,
+		"total_damage_dealt": 0,
+		"favorite_statue": "",
+		"statue_usage": {}
+	}
+
 
 func track_enemy_killed() -> void:
 	run_stats["total_kills"] += 1
 
+
 func track_combo(combo_count: int) -> void:
-	if combo_count > run_stats["highest_combo"]: run_stats["highest_combo"] = combo_count
+	if combo_count > run_stats["highest_combo"]:
+		run_stats["highest_combo"] = combo_count
+
 
 func track_gold_earned(amount: int) -> void:
 	run_stats["total_gold_earned"] += amount
 
+
 func track_damage_dealt(amount: float) -> void:
 	run_stats["total_damage_dealt"] += int(amount)
 
+
 func track_statue_placed(statue_data: Resource) -> void:
 	var statue_id = statue_data.get("id") if statue_data else "unknown"
-	if not run_stats["statue_usage"].has(statue_id): run_stats["statue_usage"][statue_id] = 0
+	if not run_stats["statue_usage"].has(statue_id):
+		run_stats["statue_usage"][statue_id] = 0
 	run_stats["statue_usage"][statue_id] += 1
 
+
 func get_run_stats() -> Dictionary:
+	run_stats["waves_survived"] = current_wave
 	return run_stats.duplicate()

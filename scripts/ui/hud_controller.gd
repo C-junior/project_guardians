@@ -381,81 +381,45 @@ func _spawn_confetti() -> void:
 		tween.tween_property(confetti, "modulate:a", 0.0, fall_time * 0.8).set_delay(fall_time * 0.2)
 		tween.set_parallel(false)
 		tween.tween_callback(confetti.queue_free)
-
-
-
-## JUICE: Confetti particle effect for wave complete
-func _spawn_confetti() -> void:
-var viewport_size = get_viewport().get_visible_rect().size
-var confetti_colors = [
-Color(1.0, 0.3, 0.3),  # Red
-Color(0.3, 1.0, 0.3),  # Green
-Color(0.3, 0.3, 1.0),  # Blue
-Color(1.0, 1.0, 0.3),  # Yellow
-Color(1.0, 0.3, 1.0),  # Magenta
-Color(0.3, 1.0, 1.0),  # Cyan
-]
-
-for i in range(20):
-var confetti = ColorRect.new()
-confetti.size = Vector2(randf_range(8, 16), randf_range(8, 16))
-confetti.color = confetti_colors[randi() % confetti_colors.size()]
-confetti.position = Vector2(randf_range(0, viewport_size.x), -20)
-confetti.rotation = randf_range(0, TAU)
-confetti.mouse_filter = Control.MOUSE_FILTER_IGNORE
-add_child(confetti)
-
-# Animate falling with spin
-var fall_time = randf_range(1.5, 2.5)
-var end_y = viewport_size.y + 50
-var x_drift = randf_range(-100, 100)
-
-var tween = create_tween()
-tween.set_parallel(true)
-tween.tween_property(confetti, "position:y", end_y, fall_time).set_ease(Tween.EASE_IN)
-tween.tween_property(confetti, "position:x", confetti.position.x + x_drift, fall_time)
-tween.tween_property(confetti, "rotation", confetti.rotation + TAU * 2, fall_time)
-tween.tween_property(confetti, "modulate:a", 0.0, fall_time * 0.8).set_delay(fall_time * 0.2)
-tween.set_parallel(false)
-tween.tween_callback(confetti.queue_free)
-
-# Also spawn gold shower
-var gold_earned = 75 + (GameManager.current_wave * 15)
-_spawn_gold_shower(gold_earned)
+	
+	# Also spawn gold shower
+	var gold_earned = 75 + (GameManager.current_wave * 15)
+	_spawn_gold_shower(gold_earned)
 
 
 ## JUICE: Gold coin shower effect for wave complete
 func _spawn_gold_shower(gold_amount: int) -> void:
-var viewport_size = get_viewport().get_visible_rect().size
-var num_coins = min(gold_amount / 10, 30)  # 1 coin per 10 gold, max 30 coins
+	var viewport_size = get_viewport().get_visible_rect().size
+	var num_coins = min(gold_amount / 10, 30)  # 1 coin per 10 gold, max 30 coins
+	
+	for i in range(num_coins):
+		var coin = Label.new()
+		coin.text = "💰"
+		coin.add_theme_font_size_override("font_size", 24)
+		coin.position = Vector2(randf_range(viewport_size.x * 0.2, viewport_size.x * 0.8), -30)
+		coin.rotation = randf_range(0, TAU)
+		coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(coin)
+		
+		# Animate falling with bounce at bottom
+		var fall_time = randf_range(0.8, 1.2)
+		var end_y = viewport_size.y - randf_range(50, 150)
+		var x_drift = randf_range(-50, 50)
+		
+		var tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(coin, "position:y", end_y, fall_time).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BOUNCE)
+		tween.tween_property(coin, "position:x", coin.position.x + x_drift, fall_time)
+		tween.tween_property(coin, "rotation", coin.rotation + TAU, fall_time)
+		tween.set_parallel(false)
+		# Hold at bottom briefly then fade
+		tween.tween_interval(0.5)
+		tween.tween_property(coin, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(coin.queue_free)
 
-for i in range(num_coins):
-var coin = Label.new()
-coin.text = ""
-coin.add_theme_font_size_override("font_size", 24)
-coin.position = Vector2(randf_range(viewport_size.x * 0.2, viewport_size.x * 0.8), -30)
-coin.rotation = randf_range(0, TAU)
-coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-add_child(coin)
-
-# Animate falling with bounce at bottom
-var fall_time = randf_range(0.8, 1.2)
-var end_y = viewport_size.y - randf_range(50, 150)
-var x_drift = randf_range(-50, 50)
-
-var tween = create_tween()
-tween.set_parallel(true)
-tween.tween_property(coin, "position:y", end_y, fall_time).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BOUNCE)
-tween.tween_property(coin, "position:x", coin.position.x + x_drift, fall_time)
-tween.tween_property(coin, "rotation", coin.rotation + TAU, fall_time)
-tween.set_parallel(false)
-# Hold at bottom briefly then fade
-tween.tween_interval(0.5)
-tween.tween_property(coin, "modulate:a", 0.0, 0.3)
-tween.tween_callback(coin.queue_free)
 
 
-func _process\(delta: float\) -> void:
+func _process(delta: float) -> void:
 	# Update ability buttons cooldown states
 	for button in ability_bar.get_children():
 		if button.has_meta("statue"):

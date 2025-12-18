@@ -40,17 +40,25 @@ class_name StatueData
 @export var has_aura: bool = false  # Show persistent aura
 
 
-## Calculate stats for a given evolution tier (0-3)
-func get_stats_for_tier(tier: int) -> Dictionary:
-	var multipliers = [1.0, 1.4, 1.8, 2.5]  # Base, Enhanced, Awakened, Divine
-	var mult = multipliers[clamp(tier, 0, 3)]
+## Rarity stat multipliers: Common(1.0), Uncommon(1.15), Rare(1.3), Epic(1.5), Legendary(1.8)
+const RARITY_STAT_MULTIPLIERS = [1.0, 1.15, 1.30, 1.50, 1.80]
+
+## Calculate stats for a given evolution tier (0-3) and rarity
+## rarity_override: -1 to use resource's rarity, or 0-4 to override
+func get_stats_for_tier(tier: int, rarity_override: int = -1) -> Dictionary:
+	var tier_multipliers = [1.0, 1.4, 1.8, 2.5]  # Base, Enhanced, Awakened, Divine
+	var tier_mult = tier_multipliers[clamp(tier, 0, 3)]
+	
+	# Use provided rarity or resource's rarity
+	var rarity_idx = rarity_override if rarity_override >= 0 else rarity
+	var rarity_mult = RARITY_STAT_MULTIPLIERS[clamp(rarity_idx, 0, 4)]
 	
 	return {
-		"damage": base_damage * mult,
-		"attack_speed": attack_speed * (1.0 + (tier * 0.15)),  # Slight speed boost per tier
-		"range": attack_range + (tier * 10),  # +10 range per tier
-		"health": max_health * mult,
-		"cooldown": ability_cooldown * (1.0 - (tier * 0.1))  # 10% faster cooldown per tier
+		"damage": base_damage * tier_mult * rarity_mult,
+		"attack_speed": attack_speed * (1.0 + (tier * 0.15)) * rarity_mult,
+		"range": attack_range + (tier * 10),  # Range NOT affected by rarity
+		"cooldown": ability_cooldown * (1.0 - (tier * 0.1)),  # Cooldown NOT affected
+		"rarity_mult": rarity_mult  # Pass rarity multiplier for reference
 	}
 
 

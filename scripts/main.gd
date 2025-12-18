@@ -308,22 +308,32 @@ func _input(event: InputEvent) -> void:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			var grid_pos = arena.world_to_grid(get_global_mouse_position())
 			if arena.is_cell_empty(grid_pos):
-				# Place with correct tier
-				arena.place_statue(pending_statue_to_place, grid_pos, pending_statue_tier)
+				# Place with correct tier - check if placement succeeded
+				var placed = arena.place_statue(pending_statue_to_place, grid_pos, pending_statue_tier)
 				
-				# If placing from inventory, remove from inventory with tier
-				if not is_initial_placement:
-					GameManager.remove_from_inventory(pending_statue_to_place, "statues", pending_statue_tier)
-				
-				pending_statue_to_place = null
-				pending_statue_tier = 0
-				_exit_placement_mode()
-				
-				# After placing, return to arena view (don't auto-start wave)
-				is_initial_placement = false
-				
-				# Show feedback - player must use Start Wave button
-				print("[Main] Statue placed! Use Start Wave button to begin combat.")
+				if placed:
+					# Only remove from inventory if placement succeeded
+					if not is_initial_placement:
+						GameManager.remove_from_inventory(pending_statue_to_place, "statues", pending_statue_tier)
+					
+					pending_statue_to_place = null
+					pending_statue_tier = 0
+					_exit_placement_mode()
+					
+					# After placing, return to arena view (don't auto-start wave)
+					is_initial_placement = false
+					
+					# Show feedback - player must use Start Wave button
+					print("[Main] Statue placed! Use Start Wave button to begin combat.")
+				else:
+					# Placement failed (probably limit reached) - return statue to inventory display
+					print("[Main] Placement failed - statue limit reached. Returning to inventory.")
+					_exit_placement_mode()
+					pending_statue_to_place = null
+					pending_statue_tier = 0
+					if inventory_ui:
+						inventory_ui.visible = true
+						inventory_ui.refresh()
 				
 				# DON'T auto-open shop after placing - user can click shop button if they want to reopen
 				# This prevents unwanted shop popups during statue placement
@@ -629,22 +639,35 @@ func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: V
 	var grid_pos = arena.world_to_grid(world_pos)
 	
 	if arena.is_cell_empty(grid_pos):
-		# Place the statue
-		arena.place_statue(statue_data, grid_pos, tier)
+		# Place the statue - check if placement succeeded
+		var placed = arena.place_statue(statue_data, grid_pos, tier)
 		
-		# Remove from inventory
-		GameManager.remove_from_inventory(statue_data, "statues", tier)
-		
-		# Complete the drag
-		if inventory_ui:
-			inventory_ui.complete_drag()
-		
-		is_drag_dropping = false
-		drag_drop_statue = null
-		drag_drop_tier = 0
-		_exit_placement_mode()
-		
-		print("[Main] Statue placed via drag-drop at %s!" % grid_pos)
+		if placed:
+			# Only remove from inventory if placement succeeded
+			GameManager.remove_from_inventory(statue_data, "statues", tier)
+			
+			# Complete the drag
+			if inventory_ui:
+				inventory_ui.complete_drag()
+			
+			is_drag_dropping = false
+			drag_drop_statue = null
+			drag_drop_tier = 0
+			_exit_placement_mode()
+			
+			print("[Main] Statue placed via drag-drop at %s!" % grid_pos)
+		else:
+			# Placement failed (limit reached) - return to inventory
+			print("[Main] Placement failed - statue limit reached. Returning to inventory.")
+			if inventory_ui:
+				inventory_ui.cancel_drag()
+				inventory_ui.visible = true
+				inventory_ui.refresh()
+			
+			is_drag_dropping = false
+			drag_drop_statue = null
+			drag_drop_tier = 0
+			_exit_placement_mode()
 	else:
 		# Invalid placement - cancel and return to inventory
 		if inventory_ui:

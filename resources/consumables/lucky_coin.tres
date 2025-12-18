@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3 uid="uid://cluckycoin001"]
+
+[ext_resource type="Script" path="res://scripts/data/consumable_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/soul_gem.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "lucky_coin"
+display_name = "Lucky Coin"
+description = "A charmed coin that attracts wealth. 15% chance for enemies to drop bonus gold this wave."
+icon_texture = ExtResource("2_icon")
+base_cost = 45
+bonus_gold_chance = 0.15

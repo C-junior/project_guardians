@@ -86,6 +86,20 @@ var unlocked_artifacts: Array = []
 var unlocked_blessings: Array = ["warriors_resolve", "merchants_fortune", "ancient_power"]
 var permanent_gold_bonus: int = 0
 var starting_statue_count: int = 1
+var statue_slots_unlocked: int = 0  # 0-4, adds to base max statues
+var rune_slots_unlocked: int = 0     # 0-2, adds base upgrade slots to all statues
+
+# Statue Limit System
+const BASE_MAX_STATUES: int = 4
+
+func get_max_statues() -> int:
+	return BASE_MAX_STATUES + statue_slots_unlocked
+
+func can_place_statue() -> bool:
+	return placed_statues.size() < get_max_statues()
+
+func get_rune_slot_bonus() -> int:
+	return rune_slots_unlocked
 
 
 func _ready() -> void:
@@ -267,7 +281,9 @@ func save_meta_progression() -> void:
 		"unlocked_artifacts": unlocked_artifacts,
 		"unlocked_blessings": unlocked_blessings,
 		"permanent_gold_bonus": permanent_gold_bonus,
-		"starting_statue_count": starting_statue_count
+		"starting_statue_count": starting_statue_count,
+		"statue_slots_unlocked": statue_slots_unlocked,
+		"rune_slots_unlocked": rune_slots_unlocked
 	}
 	var file = FileAccess.open("user://save_data.json", FileAccess.WRITE)
 	if file:
@@ -291,6 +307,8 @@ func load_meta_progression() -> void:
 				unlocked_blessings = data.get("unlocked_blessings", unlocked_blessings)
 				permanent_gold_bonus = data.get("permanent_gold_bonus", 0)
 				starting_statue_count = data.get("starting_statue_count", 1)
+				statue_slots_unlocked = data.get("statue_slots_unlocked", 0)
+				rune_slots_unlocked = data.get("rune_slots_unlocked", 0)
 				print("[GameManager] Progress loaded")
 
 

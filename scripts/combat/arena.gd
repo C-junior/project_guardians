@@ -113,6 +113,11 @@ func free_cell(grid_pos: Vector2i) -> void:
 
 ## Statue placement with JUICE!
 func place_statue(statue_data: Resource, grid_pos: Vector2i, tier: int = 0) -> Node2D:
+	# Check statue limit first
+	if not GameManager.can_place_statue():
+		print("[Arena] Cannot place statue - limit reached (%d/%d)" % [GameManager.placed_statues.size(), GameManager.get_max_statues()])
+		return null
+	
 	if not is_cell_empty(grid_pos):
 		print("[Arena] Cannot place statue - cell occupied at %s" % str(grid_pos))
 		return null

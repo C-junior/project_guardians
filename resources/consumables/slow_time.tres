@@ -9,5 +9,5 @@ id = "slow_time"
 display_name = "Slow Time"
 description = "A chrono crystal that distorts time. All enemies move 25% slower this wave."
 icon_texture = ExtResource("2_icon")
-base_cost = 100
+base_cost = 60
 enemy_slow_percent = 0.25

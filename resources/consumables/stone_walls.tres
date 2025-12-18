@@ -9,5 +9,5 @@ id = "stone_walls"
 display_name = "Stone Walls"
 description = "Ancient fortification magic. Your crystal gains +30% health for this wave."
 icon_texture = ExtResource("2_icon")
-base_cost = 75
+base_cost = 40
 crystal_health_boost = 0.3

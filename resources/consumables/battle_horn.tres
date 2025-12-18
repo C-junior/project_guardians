@@ -9,5 +9,5 @@ id = "battle_horn"
 display_name = "Battle Horn"
 description = "A war horn that echoes with ancient power. All statue abilities start fully charged."
 icon_texture = ExtResource("2_icon")
-base_cost = 100
+base_cost = 50
 abilities_start_ready = true

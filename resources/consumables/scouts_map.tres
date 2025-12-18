@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3 uid="uid://cscoutsmap001"]
+
+[ext_resource type="Script" path="res://scripts/data/consumable_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/artifacts/ancient_compass.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+id = "scouts_map"
+display_name = "Scout's Map"
+description = "An ancient tactical map that reveals enemy formations. Preview the next wave composition."
+icon_texture = ExtResource("2_icon")
+base_cost = 25
+preview_next_wave = true

@@ -4,7 +4,6 @@ extends CharacterBody2D
 ## Handles attack, targeting, abilities, and visual updates
 
 signal ability_used(ability_name: String)
-signal died()
 signal attacked(target: Node, damage: float)
 
 # Data
@@ -19,8 +18,6 @@ var arena: Node2D
 var damage: float
 var attack_speed: float
 var attack_range: float
-var max_health: float
-var current_health: float
 var ability_cooldown: float
 
 # State
@@ -42,7 +39,6 @@ var range_modifier: float = 0.0
 @onready var range_indicator: Sprite2D = $RangeIndicator
 @onready var attack_timer: Timer = $AttackTimer
 @onready var ability_timer: Timer = $AbilityTimer
-@onready var health_bar: ProgressBar = $HealthBar
 @onready var ability_ready_indicator: Sprite2D = $AbilityReady
 @onready var attack_range_area: Area2D = $AttackRange
 
@@ -65,9 +61,7 @@ func setup(data: Resource, tier: int = 0) -> void:
 	damage = stats.damage
 	attack_speed = stats.attack_speed
 	attack_range = stats.range
-	max_health = stats.health
 	ability_cooldown = stats.cooldown
-	current_health = max_health
 	
 	# Apply GameManager modifiers
 	_apply_global_modifiers()
@@ -99,9 +93,6 @@ func setup(data: Resource, tier: int = 0) -> void:
 	
 	# Start ability cooldown
 	_start_ability_cooldown()
-	
-	# Update health bar
-	_update_health_bar()
 	
 	print("[Statue] %s (Tier %d) placed - DMG: %.1f, SPD: %.2f, RNG: %.0f" % [
 		data.display_name, tier, damage * damage_modifier, attack_speed * attack_speed_modifier, attack_range + range_modifier
@@ -193,12 +184,7 @@ func _setup_tier_glow() -> void:
 
 var _was_mouse_over: bool = false
 
-func _process(delta: float) -> void:
-	# Apply health regeneration from artifacts (like Healing Spring)
-	var regen_rate = GameManager.get_statue_health_regen()
-	if regen_rate > 0 and current_health < max_health:
-		current_health = min(current_health + (max_health * regen_rate * delta), max_health)
-		_update_health_bar()
+func _process(_delta: float) -> void:
 	
 	# Mouse hover detection (reliable fallback using position polling)
 	var mouse_pos = get_global_mouse_position()
@@ -457,10 +443,30 @@ func make_ability_ready() -> void:
 	_on_ability_ready()
 
 
-## Apply an upgrade to this statue
-func apply_upgrade(upgrade: Resource) -> void:
+## Get maximum upgrade slots based on evolution tier + meta bonus
+func get_max_upgrade_slots() -> int:
+	# Base: 1 slot, +1 per evolution tier (so tier 0=1, tier 1=2, tier 2=3, tier 3=4)
+	var base_slots = 1 + evolution_tier
+	var meta_bonus = GameManager.get_rune_slot_bonus()  # 0-2 from meta-progression
+	return base_slots + meta_bonus
+
+
+## Check if statue can accept another upgrade
+func can_apply_upgrade() -> bool:
+	return applied_upgrades.size() < get_max_upgrade_slots()
+
+
+## Apply an upgrade to this statue (returns true if successful)
+func apply_upgrade(upgrade: Resource) -> bool:
 	if not upgrade:
-		return
+		return false
+	
+	# Check slot limit
+	if not can_apply_upgrade():
+		print("[Statue] %s cannot apply upgrade - slots full (%d/%d)" % [
+			statue_data.display_name, applied_upgrades.size(), get_max_upgrade_slots()
+		])
+		return false
 	
 	# Add to tracking
 	applied_upgrades.append(upgrade)
@@ -494,6 +500,11 @@ func apply_upgrade(upgrade: Resource) -> void:
 	
 	# Visual feedback - flash gold
 	_flash_upgrade_effect()
+	
+	print("[Statue] %s upgrade applied (%d/%d slots used)" % [
+		statue_data.display_name, applied_upgrades.size(), get_max_upgrade_slots()
+	])
+	return true
 
 
 ## Get applied upgrades (for ascension return)
@@ -663,13 +674,12 @@ func _ability_radiant_smite() -> void:
 			bonus = 2.0
 		enemy.take_damage(smite_damage * bonus, self)
 	
-	# Heal nearby statues
+	# Buff nearby statues with holy power (visual effect only, no healing)
 	for statue in GameManager.placed_statues:
 		if statue == self:
 			continue
 		if position.distance_to(statue.position) <= 150:
-			statue.heal(statue.max_health * 0.2)
-			# Visual: healing particles on healed statues
+			# Visual: blessing particles on nearby statues
 			if arena:
 				EffectsManager.create_heal_particles(arena, statue.position)
 	
@@ -747,42 +757,6 @@ func _screen_shake(duration: float = 0.2, intensity: float = 5.0) -> void:
 			var offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
 			shake_tween.tween_property(camera, "offset", original_offset + offset, 0.05)
 		shake_tween.tween_property(camera, "offset", original_offset, 0.05)
-
-
-## Health and damage
-func take_damage(amount: float) -> void:
-	current_health -= amount
-	_update_health_bar()
-	
-	# Damage flash
-	sprite.modulate = Color.RED
-	await get_tree().create_timer(0.1).timeout
-	sprite.modulate = Color.WHITE
-	
-	if current_health <= 0:
-		_die()
-
-
-func heal(amount: float) -> void:
-	current_health = min(current_health + amount, max_health)
-	_update_health_bar()
-	
-	# Heal flash
-	sprite.modulate = Color.GREEN
-	await get_tree().create_timer(0.1).timeout
-	sprite.modulate = Color.WHITE
-
-
-func _update_health_bar() -> void:
-	health_bar.value = (current_health / max_health) * 100
-
-
-func _die() -> void:
-	_hide_stats_tooltip()  # Clean up tooltip
-	died.emit()
-	arena.free_cell(grid_position)
-	GameManager.unregister_statue(self)
-	queue_free()
 
 
 ## UI interactions

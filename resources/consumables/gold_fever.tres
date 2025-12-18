@@ -9,5 +9,5 @@ id = "gold_fever"
 display_name = "Gold Fever"
 description = "A mystical elixir that makes gold shimmer brighter. Earn DOUBLE gold this wave!"
 icon_texture = ExtResource("2_icon")
-base_cost = 150
+base_cost = 75
 gold_multiplier = 1.0

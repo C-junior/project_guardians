@@ -19,6 +19,9 @@ class_name ConsumableData
 @export var enemy_slow_percent: float = 0.0         # Slow Time effect (e.g., 0.25 = 25% slower)
 @export var damage_boost: float = 0.0               # Temporary damage boost
 @export var attack_speed_boost: float = 0.0         # Temporary speed boost
+@export var cooldown_recovery_boost: float = 0.0    # Arcane Surge effect (e.g., 0.3 = +30%)
+@export var bonus_gold_chance: float = 0.0          # Lucky Coin effect (e.g., 0.15 = 15%)
+@export var preview_next_wave: bool = false         # Scout's Map effect
 
 
 ## Get effect description for UI
@@ -37,5 +40,11 @@ func get_effect_description() -> String:
 		effects.append("+%d%% damage" % int(damage_boost * 100))
 	if attack_speed_boost > 0:
 		effects.append("+%d%% attack speed" % int(attack_speed_boost * 100))
+	if cooldown_recovery_boost > 0:
+		effects.append("+%d%% cooldown recovery" % int(cooldown_recovery_boost * 100))
+	if bonus_gold_chance > 0:
+		effects.append("%d%% bonus gold chance" % int(bonus_gold_chance * 100))
+	if preview_next_wave:
+		effects.append("Preview next wave")
 	
 	return " • ".join(effects) if effects.size() > 0 else "No effect"

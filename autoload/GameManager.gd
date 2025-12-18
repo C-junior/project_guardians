@@ -192,6 +192,32 @@ func get_gold_multiplier() -> float:
 	return multiplier
 
 
+## Get active cooldown recovery boost from consumables (Arcane Surge)
+func get_active_cooldown_boost() -> float:
+	for consumable in active_consumables:
+		var boost = consumable.get("cooldown_recovery_boost")
+		if boost and boost > 0:
+			return boost
+	return 0.0
+
+
+## Get active bonus gold chance from consumables (Lucky Coin)
+func get_active_bonus_gold_chance() -> float:
+	for consumable in active_consumables:
+		var chance = consumable.get("bonus_gold_chance")
+		if chance and chance > 0:
+			return chance
+	return 0.0
+
+
+## Check if we should preview next wave (Scout's Map)
+func has_wave_preview_active() -> bool:
+	for consumable in active_consumables:
+		if consumable.get("preview_next_wave"):
+			return true
+	return false
+
+
 func spend_gold(amount: int) -> bool:
 	if gold >= amount:
 		gold -= amount

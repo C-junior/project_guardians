@@ -22,6 +22,9 @@ signal start_wave_button_pressed()
 @onready var shop_button: Button = $ActionButtons/ShopButton
 @onready var start_wave_button: Button = $ActionButtons/StartWaveButton
 
+# Statue count display - dynamically created if not in scene
+var statue_count_label: Label = null
+
 # KillCounter
 var kills_this_wave: int = 0
 
@@ -62,6 +65,9 @@ func _ready() -> void:
 	
 	# Setup danger effects
 	_setup_danger_effects()
+	
+	# Setup statue count display
+	_setup_statue_count()
 
 
 func _on_inventory_pressed() -> void:
@@ -141,6 +147,8 @@ func _on_wave_changed(wave: int) -> void:
 func _on_statue_placed(statue: Node) -> void:
 	# Add ability button for this statue
 	_add_ability_button(statue)
+	# Update statue count display
+	_update_statue_count()
 
 
 func _add_ability_button(statue: Node) -> void:
@@ -577,3 +585,44 @@ func _danger_screen_shake(intensity: float) -> void:
 		var offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
 		shake_tween.tween_property(camera, "offset", original_offset + offset, 0.05)
 	shake_tween.tween_property(camera, "offset", original_offset, 0.05)
+
+
+## STATUE COUNT: Setup the statue count label in TopBar
+func _setup_statue_count() -> void:
+	# Try to find existing label in scene
+	statue_count_label = get_node_or_null("TopBar/StatueCount")
+	
+	if not statue_count_label:
+		# Create label dynamically if not in scene
+		statue_count_label = Label.new()
+		statue_count_label.name = "StatueCount"
+		statue_count_label.add_theme_font_size_override("font_size", 16)
+		statue_count_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))  # Gold-ish
+		statue_count_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		statue_count_label.add_theme_constant_override("outline_size", 2)
+		
+		# Add to TopBar (after other elements)
+		var top_bar = get_node_or_null("TopBar")
+		if top_bar:
+			top_bar.add_child(statue_count_label)
+	
+	# Initial update
+	_update_statue_count()
+
+
+## STATUE COUNT: Update the display
+func _update_statue_count() -> void:
+	if not statue_count_label:
+		return
+	
+	var current = GameManager.placed_statues.size()
+	var max_count = GameManager.get_max_statues()
+	statue_count_label.text = "⚔️ %d/%d" % [current, max_count]
+	
+	# Color coding: yellow if near limit, red if at limit
+	if current >= max_count:
+		statue_count_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))  # Red
+	elif current >= max_count - 1:
+		statue_count_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))  # Yellow
+	else:
+		statue_count_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))  # Gold

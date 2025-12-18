@@ -399,6 +399,12 @@ func _die() -> void:
 	var gold_multiplier = GameManager.get_gold_multiplier()
 	var actual_gold = int(base_gold * gold_multiplier)
 	
+	# Lucky Coin bonus gold chance
+	var bonus_chance = GameManager.get_active_bonus_gold_chance()
+	if bonus_chance > 0 and randf() < bonus_chance:
+		actual_gold *= 2
+		print("[Enemy] Lucky Coin bonus gold! %d" % actual_gold)
+	
 	# Add gold to player (this applies the multiplier again, so pass base)
 	GameManager.add_gold(base_gold)
 	

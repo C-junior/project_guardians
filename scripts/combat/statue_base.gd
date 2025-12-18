@@ -423,7 +423,12 @@ func _spawn_projectile(target: Node, projectile_damage: float, is_crit: bool = f
 func _start_ability_cooldown() -> void:
 	ability_ready = false
 	ability_ready_indicator.visible = false
-	ability_timer.wait_time = ability_cooldown * cooldown_modifier
+	
+	# Apply consumable cooldown boost (Arcane Surge)
+	var cooldown_boost = GameManager.get_active_cooldown_boost()
+	var actual_cooldown = ability_cooldown * cooldown_modifier * (1.0 - cooldown_boost)
+	
+	ability_timer.wait_time = max(0.5, actual_cooldown)  # Min 0.5s cooldown
 	ability_timer.start()
 
 

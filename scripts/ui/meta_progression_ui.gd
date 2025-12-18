@@ -16,6 +16,8 @@ var permanent_upgrades = [
 	{"id": "crit_chance", "name": "Critical Eye", "desc": "+2% base crit chance", "cost": 250, "max": 3, "value": 0.02},
 	{"id": "crystal_hp", "name": "Crystal Fortitude", "desc": "+15 crystal max HP", "cost": 300, "max": 4, "value": 15},
 	{"id": "wave_gold", "name": "Prosperity", "desc": "+5 gold per wave", "cost": 350, "max": 3, "value": 5},
+	{"id": "sacred_ground", "name": "Sacred Ground", "desc": "+1 max statue slot", "cost": 400, "max": 4, "value": 1},
+	{"id": "runic_mastery", "name": "Runic Mastery", "desc": "+1 base upgrade slot", "cost": 500, "max": 2, "value": 1},
 ]
 
 # Unlockable content (statues/artifacts/blessings not yet unlocked)
@@ -136,6 +138,10 @@ func _get_upgrade_level(upgrade_id: String) -> int:
 			return int(GameManager.permanent_gold_bonus / 25)
 		"crystal_hp":
 			return int((GameManager.crystal_max_health - 100) / 15)
+		"sacred_ground":
+			return GameManager.statue_slots_unlocked
+		"runic_mastery":
+			return GameManager.rune_slots_unlocked
 	return 0
 
 
@@ -184,6 +190,12 @@ func _on_upgrade_pressed(upgrade: Dictionary) -> void:
 		"crit_chance":
 			# Would need to add base_crit_bonus to GameManager
 			pass
+		"sacred_ground":
+			GameManager.statue_slots_unlocked += 1
+			print("[Sanctum] Max statues now: %d" % GameManager.get_max_statues())
+		"runic_mastery":
+			GameManager.rune_slots_unlocked += 1
+			print("[Sanctum] Base upgrade slots bonus: +%d" % GameManager.rune_slots_unlocked)
 	
 	GameManager.save_meta_progression()
 	_refresh_ui()

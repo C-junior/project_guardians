@@ -37,6 +37,11 @@ var danger_label: Label = null
 var danger_pulse_timer: float = 0.0
 var is_in_danger: bool = false
 
+# TUTORIAL SYSTEM
+var tutorial_panel: PanelContainer = null
+var tutorial_label: Label = null
+var tutorial_dismiss_btn: Button = null
+
 
 func _ready() -> void:
 	# Connect to GameManager signals
@@ -68,6 +73,9 @@ func _ready() -> void:
 	
 	# Setup statue count display
 	_setup_statue_count()
+	
+	# Setup tutorial panel
+	_setup_tutorial_panel()
 
 
 func _on_inventory_pressed() -> void:
@@ -88,6 +96,11 @@ func _on_start_wave_pressed() -> void:
 
 func _on_game_state_changed(_new_state: GameManager.GameState) -> void:
 	_update_action_buttons_visibility()
+	
+	# Show shop tutorial when first entering shop phase
+	if _new_state == GameManager.GameState.SHOP:
+		if TutorialManager:
+			TutorialManager.show_tutorial("open_shop")
 
 
 func _update_action_buttons_visibility() -> void:
@@ -182,6 +195,9 @@ func _update_ability_button(button: Button, statue: Node) -> void:
 	
 	if statue.ability_ready:
 		button.modulate = Color(0.3, 1.0, 0.5)
+		# Show ability tutorial when first ability becomes ready
+		if TutorialManager:
+			TutorialManager.show_tutorial("use_ability")
 	else:
 		button.modulate = Color(0.5, 0.5, 0.5)
 
@@ -214,6 +230,11 @@ func show_wave_start(wave: int) -> void:
 	# Get wave preview
 	var preview = WaveData.get_wave_preview(wave)
 	var is_boss_wave = (wave % 5 == 0)
+	
+	# Show boss wave tutorial on first boss wave (wave 5)
+	if is_boss_wave and wave == 5:
+		if TutorialManager:
+			TutorialManager.show_tutorial("boss_wave")
 	
 	# Update wave start label with preview
 	var wave_label_node = $WaveStartPanel/VBox/WaveStartLabel
@@ -626,3 +647,118 @@ func _update_statue_count() -> void:
 		statue_count_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))  # Yellow
 	else:
 		statue_count_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))  # Gold
+
+
+## TUTORIAL SYSTEM: Setup the tutorial popup panel
+func _setup_tutorial_panel() -> void:
+	# Connect to TutorialManager signals
+	if TutorialManager:
+		TutorialManager.tutorial_shown.connect(_on_tutorial_shown)
+		TutorialManager.tutorial_dismissed.connect(_on_tutorial_dismissed)
+	
+	# Create panel container
+	tutorial_panel = PanelContainer.new()
+	tutorial_panel.name = "TutorialPanel"
+	tutorial_panel.visible = false
+	tutorial_panel.z_index = 100
+	
+	# Style the panel
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.15, 0.25, 0.95)
+	style.border_color = Color(0.4, 0.7, 1.0)
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(20)
+	tutorial_panel.add_theme_stylebox_override("panel", style)
+	
+	# Create VBox for content
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	tutorial_panel.add_child(vbox)
+	
+	# Tutorial header
+	var header = Label.new()
+	header.text = "💡 TIP"
+	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(header)
+	
+	# Tutorial message
+	tutorial_label = Label.new()
+	tutorial_label.text = ""
+	tutorial_label.add_theme_font_size_override("font_size", 16)
+	tutorial_label.add_theme_color_override("font_color", Color.WHITE)
+	tutorial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tutorial_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tutorial_label.custom_minimum_size = Vector2(350, 0)
+	vbox.add_child(tutorial_label)
+	
+	# Spacer
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 10)
+	vbox.add_child(spacer)
+	
+	# Dismiss button
+	tutorial_dismiss_btn = Button.new()
+	tutorial_dismiss_btn.text = "Got it! ✓"
+	tutorial_dismiss_btn.custom_minimum_size = Vector2(120, 35)
+	tutorial_dismiss_btn.pressed.connect(_on_tutorial_dismiss_pressed)
+	vbox.add_child(tutorial_dismiss_btn)
+	
+	# Center the panel
+	tutorial_panel.set_anchors_preset(Control.PRESET_CENTER)
+	tutorial_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	tutorial_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	
+	add_child(tutorial_panel)
+	
+	# Trigger first tutorial if this is a new run
+	call_deferred("_check_initial_tutorials")
+
+
+## TUTORIAL SYSTEM: Show tutorial popup
+func _on_tutorial_shown(id: String, message: String) -> void:
+	if not tutorial_panel or not tutorial_label:
+		return
+	
+	tutorial_label.text = message
+	tutorial_panel.visible = true
+	tutorial_panel.modulate.a = 0.0
+	tutorial_panel.scale = Vector2(0.8, 0.8)
+	tutorial_panel.pivot_offset = tutorial_panel.size / 2
+	
+	# Animate in
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(tutorial_panel, "modulate:a", 1.0, 0.3)
+	tween.tween_property(tutorial_panel, "scale", Vector2.ONE, 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
+## TUTORIAL SYSTEM: Hide tutorial popup
+func _on_tutorial_dismissed(_id: String) -> void:
+	if not tutorial_panel:
+		return
+	
+	# Animate out
+	var tween = create_tween()
+	tween.tween_property(tutorial_panel, "modulate:a", 0.0, 0.2)
+	tween.tween_property(tutorial_panel, "scale", Vector2(0.8, 0.8), 0.2)
+	tween.tween_callback(func(): tutorial_panel.visible = false)
+
+
+## TUTORIAL SYSTEM: Dismiss button pressed
+func _on_tutorial_dismiss_pressed() -> void:
+	if TutorialManager:
+		TutorialManager.dismiss_current()
+
+
+## TUTORIAL SYSTEM: Check if we should show initial tutorials
+func _check_initial_tutorials() -> void:
+	# Wait a moment for game to initialize
+	await get_tree().create_timer(1.0).timeout
+	
+	# Show placement tutorial if this is wave 0/1 and no statues placed
+	if GameManager.current_wave <= 1 and GameManager.placed_statues.size() == 0:
+		if TutorialManager:
+			TutorialManager.show_tutorial("place_statue")

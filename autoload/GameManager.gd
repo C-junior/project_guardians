@@ -309,7 +309,8 @@ func save_meta_progression() -> void:
 		"permanent_gold_bonus": permanent_gold_bonus,
 		"starting_statue_count": starting_statue_count,
 		"statue_slots_unlocked": statue_slots_unlocked,
-		"rune_slots_unlocked": rune_slots_unlocked
+		"rune_slots_unlocked": rune_slots_unlocked,
+		"completed_tutorials": TutorialManager.completed_tutorials if TutorialManager else []
 	}
 	var file = FileAccess.open("user://save_data.json", FileAccess.WRITE)
 	if file:

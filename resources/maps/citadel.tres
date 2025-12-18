@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=2 format=3 uid="uid://cmap002citadel"]
+
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "citadel"
+display_name = "The Frozen Citadel"
+description = "An icy fortress haunted by frost wraiths. Flying enemies from the start!"
+difficulty = 2
+total_waves = 25
+elite_start_wave = 5
+flying_start_wave = 1
+shield_start_wave = 8
+starting_gold_bonus = 50
+wave_gold_multiplier = 0.9
+boss_wave_5 = "frost_giant"
+boss_wave_10 = "orc_boss"
+boss_wave_15 = "necromancer_lord"
+boss_wave_20 = "ancient_dragon"
+boss_wave_25 = "frost_queen"
+background_color = Color(0.1, 0.15, 0.25, 1)
+path_color = Color(0.5, 0.6, 0.7, 1)

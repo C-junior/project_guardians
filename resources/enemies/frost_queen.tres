@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://cxamoelntemi"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/ancient_dragon.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "frost_queen"
+display_name = "Frost Queen"
+sprite_texture = ExtResource("2_sprite")
+max_health = 1200.0
+move_speed = 35.0
+damage_to_crystal = 120
+gold_reward = 250
+is_flying = true
+is_boss = true
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = true
+summon_cooldown = 5.0
+summon_enemy_id = "ice_wraith"
+summon_count = 2
+has_shield = false
+splits_on_death = false
+scale_factor = 1.8
+tint_color = Color(0.6, 0.8, 1.0, 1.0)

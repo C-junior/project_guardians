@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://dic3ivhe8kosu"]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/shielded_knight.png" id="2_sprite"]
+
+[resource]
+script = ExtResource("1_script")
+id = "crystal_golem"
+display_name = "Crystal Golem"
+sprite_texture = ExtResource("2_sprite")
+max_health = 180.0
+move_speed = 30.0
+damage_to_crystal = 25
+gold_reward = 25
+is_flying = false
+is_boss = false
+is_undead = false
+is_demon = false
+can_teleport = false
+can_summon = false
+has_shield = true
+frontal_armor = 0.4
+splits_on_death = false
+scale_factor = 1.3
+tint_color = Color(0.7, 0.85, 1.0, 1.0)

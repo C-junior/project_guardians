@@ -57,6 +57,10 @@ var current_blessing: Resource = null
 var selected_starting_statue: Resource = null
 var pending_upgrade: Resource = null  # Upgrade waiting to be applied to a statue
 
+# Current Map
+var current_map: Resource = null  # MapData resource
+const DEFAULT_MAP_PATH = "res://resources/maps/grove.tres"
+
 # Run Statistics (tracked during current run)
 var run_stats: Dictionary = {
 			"waves_survived": 0,
@@ -102,6 +106,35 @@ func get_rune_slot_bonus() -> int:
 	return rune_slots_unlocked
 
 
+## Set the current map by path or resource
+func set_map(map_path_or_resource) -> void:
+	if map_path_or_resource is String:
+		current_map = load(map_path_or_resource)
+	elif map_path_or_resource is Resource:
+		current_map = map_path_or_resource
+	
+	if current_map:
+		print("[GameManager] Map set: %s" % current_map.display_name)
+	else:
+		push_warning("[GameManager] Failed to load map")
+
+
+## Get list of available maps
+static func get_available_maps() -> Array[Resource]:
+	var maps: Array[Resource] = []
+	var dir = DirAccess.open("res://resources/maps/")
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name.ends_with(".tres"):
+				var map = load("res://resources/maps/" + file_name)
+				if map:
+					maps.append(map)
+			file_name = dir.get_next()
+	return maps
+
+
 func _ready() -> void:
 	print("[GameManager] Initialized")
 
@@ -118,12 +151,17 @@ func start_new_run() -> void:
 	current_blessing = null
 	selected_starting_statue = null
 	_reset_inventory()
+	
+	# Load default map if none selected
+	if not current_map:
+		set_map(DEFAULT_MAP_PATH)
+	
 	current_state = GameState.SETUP  # Go to setup phase first
 	
 	# Reset run statistics
 	_reset_run_stats()
 	
-	print("[GameManager] New run started - entering setup phase")
+	print("[GameManager] New run started on map: %s" % (current_map.display_name if current_map else "Unknown"))
 
 
 ## Reset inventory for new run

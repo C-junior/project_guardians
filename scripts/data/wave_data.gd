@@ -149,14 +149,22 @@ static func generate_wave(wave_num: int) -> WaveData:
 	
 	# Add boss if boss wave (waves 5, 10, 15, 20...)
 	if wave.is_boss_wave:
-		var boss_id = "goblin_boss"  # Wave 5: Goblin King
-		if wave_num >= 20:
-			boss_id = "ancient_dragon"  # Wave 20: Ancient Dragon
-		elif wave_num >= 15:
-			boss_id = "necromancer_lord"  # Wave 15: Necromancer Lord
-		elif wave_num >= 10:
-			boss_id = "orc_boss"  # Wave 10: Orc Warlord
-		wave.spawn_groups.append({"enemy_id": boss_id, "count": 1, "delay": 2.0})
+		var boss_id = "goblin_boss"  # Default: Wave 5
+		
+		# Use map data for boss selection if available
+		if GameManager and GameManager.current_map:
+			boss_id = GameManager.current_map.get_boss_for_wave(wave_num)
+		else:
+			# Fallback to hardcoded defaults
+			if wave_num >= 20:
+				boss_id = "ancient_dragon"
+			elif wave_num >= 15:
+				boss_id = "necromancer_lord"
+			elif wave_num >= 10:
+				boss_id = "orc_boss"
+		
+		if boss_id != "":
+			wave.spawn_groups.append({"enemy_id": boss_id, "count": 1, "delay": 2.0})
 	
 	return wave
 

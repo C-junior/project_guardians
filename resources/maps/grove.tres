@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=2 format=3 uid="uid://cmap001grove"]
+
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "grove"
+display_name = "The Sacred Grove"
+description = "A peaceful forest clearing corrupted by goblins. Perfect for learning the basics."
+difficulty = 1
+total_waves = 20
+elite_start_wave = 11
+flying_start_wave = 16
+shield_start_wave = 13
+starting_gold_bonus = 0
+wave_gold_multiplier = 1.0
+boss_wave_5 = "goblin_boss"
+boss_wave_10 = "orc_boss"
+boss_wave_15 = "necromancer_lord"
+boss_wave_20 = "ancient_dragon"
+boss_wave_25 = ""
+background_color = Color(0.15, 0.2, 0.15, 1)
+path_color = Color(0.4, 0.35, 0.25, 1)

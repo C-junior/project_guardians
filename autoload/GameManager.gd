@@ -563,6 +563,18 @@ func get_inventory_count(item: Resource, item_type: String) -> int:
 	return 0
 
 
+## Sell a statue from inventory or placed, returns gold earned
+func sell_statue(statue_data: Resource, tier: int = 0) -> int:
+	if not statue_data or not statue_data.has_method("get_sell_value"):
+		return 0
+	
+	var sell_value = statue_data.get_sell_value(tier)
+	gold += sell_value
+	
+	print("[GameManager] Sold %s (Tier %d) for %d gold" % [statue_data.display_name, tier, sell_value])
+	return sell_value
+
+
 ## Get all unlocked statue resources
 func get_unlocked_statue_resources() -> Array[Resource]:
 	var statues: Array[Resource] = []

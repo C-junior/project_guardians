@@ -21,3 +21,6 @@ boss_wave_20 = "ancient_dragon"
 boss_wave_25 = "frost_queen"
 background_color = Color(0.1, 0.15, 0.25, 1)
 path_color = Color(0.5, 0.6, 0.7, 1)
+path_count = 2
+path_selection_mode = 0
+arena_scene_path = "res://scenes/combat/arena_citadel.tscn"

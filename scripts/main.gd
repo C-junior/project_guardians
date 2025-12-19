@@ -26,6 +26,7 @@ extends Node2D
 var pending_statue_to_place: Resource = null
 var pending_statue_tier: int = 0  # Track tier for placement
 var is_initial_placement: bool = false  # True when placing starting statue
+var sell_mode: bool = false  # True when selling placed statues
 
 
 func _ready() -> void:
@@ -221,11 +222,14 @@ func _on_starting_statue_selected(statue_data: Resource) -> void:
 	# Add the selected statue to inventory
 	GameManager.add_to_inventory(statue_data, "statues")
 	
+	# Load map-specific arena if needed
+	_load_arena_for_map()
+	
 	# Prepare arena
 	_reset_arena()
 	
-	# Make enemy path visible for debugging
-	_set_path_visible(true)
+	# Make enemy paths visible for debugging
+	_set_paths_visible(true)
 	
 	# Show arena and HUD (player will use inventory button to place)
 	if arena:
@@ -380,6 +384,26 @@ func _input(event: InputEvent) -> void:
 			if inventory_ui:
 				inventory_ui.visible = true
 				inventory_ui.refresh()
+	
+	# Handle sell mode for placed statues (right-click on statue in shop phase)
+	if sell_mode and event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
+			if clicked_statue:
+				_sell_placed_statue(clicked_statue)
+		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			# Cancel sell mode
+			sell_mode = false
+			print("[Main] Sell mode cancelled")
+			if inventory_ui:
+				inventory_ui.visible = true
+	
+	# Allow right-click selling placed statues during SHOP phase (quick sell)
+	if GameManager.current_state == GameManager.GameState.SHOP and not sell_mode and not GameManager.pending_upgrade and not pending_statue_to_place:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
+			if clicked_statue:
+				_sell_placed_statue(clicked_statue)
 
 
 func _get_statue_at_position(pos: Vector2) -> Node:
@@ -390,6 +414,69 @@ func _get_statue_at_position(pos: Vector2) -> Node:
 			if distance < 40:  # Click radius
 				return statue
 	return null
+
+
+## Sell a placed statue from the field
+func _sell_placed_statue(statue: Node) -> void:
+	if not statue or not is_instance_valid(statue):
+		return
+	
+	# Get statue data and tier
+	var statue_data = statue.statue_data
+	var tier = statue.current_tier if statue.get("current_tier") != null else 0
+	
+	if not statue_data:
+		print("[Main] Cannot sell - statue has no data")
+		return
+	
+	# Calculate sell value
+	var sell_value = statue_data.get_sell_value(tier) if statue_data.has_method("get_sell_value") else 0
+	
+	# Get position before removing for effect
+	var statue_pos = statue.position
+	
+	# Refund gold
+	GameManager.gold += sell_value
+	
+	# Remove from arena
+	if arena:
+		arena.remove_statue(statue)
+	
+	# Exit sell mode
+	sell_mode = false
+	
+	# JUICE: Show gold popup at statue position
+	_create_field_sell_celebration(sell_value, statue_pos)
+	
+	print("[Main] Sold placed %s (Tier %d) for %d gold!" % [statue_data.display_name, tier, sell_value])
+	
+	# Show inventory again
+	if inventory_ui:
+		inventory_ui.visible = true
+		inventory_ui.refresh()
+
+
+## JUICE: Field sell gold celebration effect
+func _create_field_sell_celebration(gold_amount: int, world_pos: Vector2) -> void:
+	var label = Label.new()
+	label.text = "+%d 💰" % gold_amount
+	label.add_theme_font_size_override("font_size", 28)
+	label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 4)
+	label.position = world_pos - Vector2(40, 30)
+	label.z_index = 100
+	
+	add_child(label)
+	
+	# Animate: pop up and fade
+	var tween = create_tween()
+	label.scale = Vector2.ZERO
+	tween.tween_property(label, "scale", Vector2(1.3, 1.3), 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.08)
+	tween.tween_property(label, "position:y", label.position.y - 60, 1.0).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.6).set_delay(0.4)
+	tween.tween_callback(label.queue_free)
 
 
 func _exit_placement_mode() -> void:
@@ -446,12 +533,47 @@ func _reset_arena() -> void:
 		for child in arena.enemies_container.get_children():
 			child.queue_free()
 	arena.grid_cells.clear()
+	arena._setup_paths()  # Reset paths for multi-path support
 	arena._setup_grid()
 	
 	# Clear HUD ability buttons
 	if hud and hud.ability_bar:
 		for child in hud.ability_bar.get_children():
 			child.queue_free()
+
+
+## Load arena scene for current map (supports map-specific arenas)
+func _load_arena_for_map() -> void:
+	if not GameManager.current_map:
+		return
+	
+	# Check if map has a custom arena scene
+	var arena_path = GameManager.current_map.get("arena_scene_path")
+	if arena_path and arena_path != "" and ResourceLoader.exists(arena_path):
+		print("[Main] Loading custom arena for map: %s" % arena_path)
+		
+		# Store arena position in tree
+		var arena_index = arena.get_index() if arena else 0
+		
+		# Remove old arena
+		if arena and arena.is_inside_tree():
+			arena.queue_free()
+			# Wait for it to be freed
+			await get_tree().process_frame
+		
+		# Load and instantiate new arena
+		var new_arena_scene = load(arena_path)
+		if new_arena_scene:
+			arena = new_arena_scene.instantiate()
+			add_child(arena)
+			move_child(arena, arena_index)  # Maintain scene order
+			
+			# Reconnect arena signals
+			arena.wave_completed.connect(_on_wave_completed)
+			
+			print("[Main] Custom arena loaded with %d paths" % arena.enemy_paths.size())
+	else:
+		print("[Main] Using default arena")
 
 
 func _start_first_wave() -> void:
@@ -532,11 +654,32 @@ func _on_hud_start_wave_pressed() -> void:
 	_start_first_wave()
 
 
-## Enemy Path Visibility (for debugging)
-func _set_path_visible(visible: bool) -> void:
-	if arena and arena.has_node("EnemyPath"):
-		var path = arena.get_node("EnemyPath")
-		# Create a Line2D to visualize the path if not exists
+## Enemy Path Visibility (for debugging) - supports multiple paths
+func _set_paths_visible(visible: bool) -> void:
+	if not arena:
+		return
+	
+	# Handle all enemy paths (multi-path support)
+	var paths_to_visualize: Array[Path2D] = []
+	
+	# Use enemy_paths array if available
+	if arena.enemy_paths and arena.enemy_paths.size() > 0:
+		paths_to_visualize = arena.enemy_paths
+	else:
+		# Fallback to legacy single path
+		var legacy_path = arena.get_node_or_null("EnemyPath")
+		if legacy_path:
+			paths_to_visualize.append(legacy_path)
+	
+	# Path colors for visual distinction
+	var path_colors = [
+		Color(1, 0.3, 0.3, 0.6),  # Red - Upper path
+		Color(0.3, 0.5, 1, 0.6),  # Blue - Lower path
+		Color(0.3, 1, 0.3, 0.6),  # Green - Third path (if any)
+	]
+	
+	for i in range(paths_to_visualize.size()):
+		var path = paths_to_visualize[i]
 		var line_name = "PathVisualization"
 		var line = path.get_node_or_null(line_name)
 		
@@ -545,21 +688,24 @@ func _set_path_visible(visible: bool) -> void:
 				line = Line2D.new()
 				line.name = line_name
 				line.width = 4.0
-				line.default_color = Color(1, 0.3, 0.3, 0.6)  # Red semi-transparent
+				line.default_color = path_colors[i % path_colors.size()]
 				path.add_child(line)
 			
 			# Copy curve points to line
 			if path.curve:
 				line.clear_points()
-				for i in range(path.curve.point_count):
-					line.add_point(path.curve.get_point_position(i))
+				for j in range(path.curve.point_count):
+					line.add_point(path.curve.get_point_position(j))
 			
 			line.visible = true
-			print("[Main] Enemy path is now VISIBLE. To hide: call _set_path_visible(false)")
 		else:
 			if line:
 				line.visible = false
-			print("[Main] Enemy path is now HIDDEN")
+	
+	if visible:
+		print("[Main] %d enemy path(s) now VISIBLE" % paths_to_visualize.size())
+	else:
+		print("[Main] Enemy path(s) now HIDDEN")
 
 
 ## Ascension UI Handlers

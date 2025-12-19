@@ -30,6 +30,11 @@ class_name MapData
 @export var background_color: Color = Color(0.15, 0.2, 0.15)
 @export var path_color: Color = Color(0.4, 0.35, 0.25)
 
+@export_group("Path Layout")
+@export var path_count: int = 1  ## Number of enemy paths (1 = single, 2 = dual)
+@export var path_selection_mode: int = 0  ## 0=random, 1=alternating, 2=wave-based
+@export var arena_scene_path: String = ""  ## Optional custom arena scene for this map
+
 
 ## Get boss ID for a given wave
 func get_boss_for_wave(wave: int) -> String:

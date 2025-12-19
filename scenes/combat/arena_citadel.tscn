@@ -1,0 +1,60 @@
+[gd_scene load_steps=5 format=3 uid="uid://uufkyo6ex25l"]
+
+[ext_resource type="Script" uid="uid://bxsunoo5nsmsp" path="res://scripts/combat/arena.gd" id="1_arena_script"]
+[ext_resource type="Texture2D" uid="uid://dt3amqcfmmwun" path="res://assets/maps/frozen-citadel-bg.png" id="2_d5g3s"]
+
+[sub_resource type="Curve2D" id="curve_path_upper"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 50, 360, 0, 0, 0, 0, 200, 360, 0, 0, 0, 0, 350, 200, 0, 0, 0, 0, 600, 160, 0, 0, 0, 0, 850, 200, 0, 0, 0, 0, 1000, 360, 0, 0, 0, 0, 1150, 360, 0, 0, 0, 0, 1182, 362, 0, 0, 0, 0, 1183, 364)
+}
+point_count = 9
+
+[sub_resource type="Curve2D" id="curve_path_lower"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 50, 360, 0, 0, 0, 0, 200, 360, 0, 0, 0, 0, 350, 520, 0, 0, 0, 0, 600, 560, 0, 0, 0, 0, 850, 520, 0, 0, 0, 0, 1000, 360, 0, 0, 0, 0, 1182, 360, 0, 0, 0, 0, 1183, 359)
+}
+point_count = 8
+
+[node name="Arena" type="Node2D"]
+script = ExtResource("1_arena_script")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.1, 0.15, 0.25, 1)
+
+[node name="Frozen-citadel-bg" type="Sprite2D" parent="."]
+position = Vector2(622, 349)
+texture = ExtResource("2_d5g3s")
+
+[node name="EnemyPath_Upper" type="Path2D" parent="."]
+curve = SubResource("curve_path_upper")
+
+[node name="EnemyPath_Lower" type="Path2D" parent="."]
+curve = SubResource("curve_path_lower")
+
+[node name="PlacementGrid" type="Node2D" parent="."]
+
+[node name="Statues" type="Node2D" parent="."]
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Projectiles" type="Node2D" parent="."]
+
+[node name="Crystal" type="Node2D" parent="."]
+position = Vector2(1180, 360)
+
+[node name="CrystalSprite" type="Sprite2D" parent="Crystal"]
+modulate = Color(0.4, 0.8, 1, 1)
+scale = Vector2(2, 2)
+
+[node name="CrystalArea" type="Area2D" parent="Crystal"]
+
+[node name="CrystalCollision" type="CollisionShape2D" parent="Crystal/CrystalArea"]
+
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(50, 360)
+
+[node name="WaveManager" type="Node" parent="."]
+
+[node name="UI" type="CanvasLayer" parent="."]

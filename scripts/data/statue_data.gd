@@ -84,3 +84,10 @@ func get_rarity_color() -> Color:
 		Color.ORANGE     # Legendary
 	]
 	return colors[rarity]
+
+
+## Get sell value for this statue at given tier (50% of purchase cost)
+func get_sell_value(tier: int = 0) -> int:
+	var tier_multipliers = [1.0, 1.4, 1.8, 2.5]  # Same as evolution multipliers
+	var tier_mult = tier_multipliers[clamp(tier, 0, 3)]
+	return int(get_cost() * tier_mult * 0.5)

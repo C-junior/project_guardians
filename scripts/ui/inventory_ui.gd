@@ -227,10 +227,21 @@ func _create_item_card(item_data: Resource, count: int, item_type: String, tier:
 	# Place button for statues (alternative to drag)
 	if item_type == "statues":
 		var place_btn = Button.new()
-		place_btn.text = "📍 Place"
+		place_btn.text = "📍"
+		place_btn.tooltip_text = "Place on field"
 		place_btn.add_theme_font_size_override("font_size", 11)
 		place_btn.pressed.connect(_on_place_statue.bind(item_data, tier))
 		btn_hbox.add_child(place_btn)
+		
+		# Sell button for statues
+		var sell_value = item_data.get_sell_value(tier) if item_data.has_method("get_sell_value") else 0
+		var sell_btn = Button.new()
+		sell_btn.text = "💰%d" % sell_value
+		sell_btn.tooltip_text = "Sell for %d gold" % sell_value
+		sell_btn.add_theme_font_size_override("font_size", 10)
+		sell_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		sell_btn.pressed.connect(_on_sell_statue.bind(item_data, tier))
+		btn_hbox.add_child(sell_btn)
 	
 	# Use button for consumables
 	if item_type == "consumables":
@@ -605,6 +616,54 @@ func _on_close_pressed() -> void:
 
 func _on_place_statue(statue_data: Resource, tier: int = 0) -> void:
 	place_statue_requested.emit(statue_data, tier)
+
+
+func _on_sell_statue(statue_data: Resource, tier: int = 0) -> void:
+	if not statue_data:
+		return
+	
+	# Sell and get gold
+	var gold_earned = GameManager.sell_statue(statue_data, tier)
+	
+	# Remove from inventory
+	GameManager.remove_from_inventory(statue_data, "statues", tier)
+	
+	# JUICE: Gold popup effect
+	_create_sell_celebration(gold_earned)
+	
+	print("[Inventory] Sold %s (Tier %d) for %d gold!" % [statue_data.display_name, tier, gold_earned])
+	
+	# Refresh UI
+	refresh()
+
+
+## JUICE: Sell celebration effect
+func _create_sell_celebration(gold_amount: int) -> void:
+	# Create floating gold text
+	var label = Label.new()
+	label.text = "+%d 💰" % gold_amount
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 3)
+	
+	# Position at center of inventory panel
+	var panel = $Control/Panel
+	if panel:
+		label.position = panel.get_global_rect().get_center() - Vector2(50, 20)
+	else:
+		label.position = Vector2(640, 360)  # Fallback to center
+	
+	get_tree().root.add_child(label)
+	
+	# Animate: pop up and fade
+	var tween = create_tween()
+	label.scale = Vector2.ZERO
+	tween.tween_property(label, "scale", Vector2(1.2, 1.2), 0.15).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.1)
+	tween.tween_property(label, "position:y", label.position.y - 50, 0.8).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.5).set_delay(0.3)
+	tween.tween_callback(label.queue_free)
 
 
 func _on_use_consumable(consumable_data: Resource) -> void:

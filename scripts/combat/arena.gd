@@ -9,7 +9,7 @@ signal enemy_spawned(enemy: Node2D)
 signal statue_placed(statue: Node2D, grid_pos: Vector2i)
 
 # References
-@onready var enemy_path: Path2D = $EnemyPath
+@onready var enemy_path: Path2D = $EnemyPath  # Legacy single path (still used for backwards compat)
 @onready var placement_grid: Node2D = $PlacementGrid
 @onready var statues_container: Node2D = $Statues
 @onready var enemies_container: Node2D = $Enemies
@@ -18,6 +18,10 @@ signal statue_placed(statue: Node2D, grid_pos: Vector2i)
 @onready var spawn_point: Marker2D = $SpawnPoint
 @onready var wave_manager: Node = $WaveManager
 @onready var ui_layer: CanvasLayer = $UI
+
+# Multi-path support
+var enemy_paths: Array[Path2D] = []  # All available enemy paths
+var next_path_index: int = 0  # For alternating path selection mode
 
 # Arena settings
 const GRID_SIZE = Vector2(64, 64)
@@ -37,9 +41,52 @@ var enemy_scene: PackedScene = preload("res://scenes/entities/enemy.tscn")
 
 
 func _ready() -> void:
+	_setup_paths()
 	_setup_grid()
 	_setup_crystal()
-	print("[Arena] Ready - Grid: %dx%d" % [GRID_COLS, GRID_ROWS])
+	print("[Arena] Ready - Grid: %dx%d, Paths: %d" % [GRID_COLS, GRID_ROWS, enemy_paths.size()])
+
+
+## Setup enemy paths (supports single or multiple paths)
+func _setup_paths() -> void:
+	enemy_paths.clear()
+	
+	# Find all Path2D nodes that start with "EnemyPath"
+	for child in get_children():
+		if child is Path2D and child.name.begins_with("EnemyPath"):
+			enemy_paths.append(child)
+			print("[Arena] Found path: %s" % child.name)
+	
+	# Fallback: if no paths found, use legacy single path
+	if enemy_paths.is_empty() and enemy_path:
+		enemy_paths.append(enemy_path)
+		print("[Arena] Using legacy single path")
+
+
+## Get the path for the next enemy to spawn on (based on map settings)
+func _get_spawn_path() -> Path2D:
+	if enemy_paths.is_empty():
+		return null
+	
+	if enemy_paths.size() == 1:
+		return enemy_paths[0]
+	
+	# Get path selection mode from current map data
+	var mode: int = 0  # Default: random
+	if GameManager.current_map:
+		mode = GameManager.current_map.path_selection_mode
+	
+	match mode:
+		0:  # Random
+			return enemy_paths[randi() % enemy_paths.size()]
+		1:  # Alternating
+			var path = enemy_paths[next_path_index]
+			next_path_index = (next_path_index + 1) % enemy_paths.size()
+			return path
+		2:  # Wave-based
+			return enemy_paths[GameManager.current_wave % enemy_paths.size()]
+	
+	return enemy_paths[0]
 
 
 func _setup_grid() -> void:
@@ -398,7 +445,7 @@ func remove_statue(statue: Node2D) -> void:
 func spawn_enemy(enemy_data: Resource, force_elite: int = -1) -> Node2D:
 	var enemy = enemy_scene.instantiate()
 	enemy.position = spawn_point.position
-	enemy.path = enemy_path
+	enemy.path = _get_spawn_path()  # Use path selection for multi-path support
 	enemy.arena = self
 	
 	# IMPORTANT: Add to tree BEFORE setup so @onready vars are ready

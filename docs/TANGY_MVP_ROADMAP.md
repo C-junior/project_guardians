@@ -15,17 +15,22 @@ This roadmap is intentionally broken into small steps so we can ship value conti
 
 ### Step 1. Freeze the MVP rules
 
-Output:
+Status:
 
-- 1 map
-- 8 to 10 waves
-- 1 boss
-- 5 statues max in the test roster
-- 6 to 8 equipment items
+- Complete
+
+Locked output:
+
+- Map: `The Sacred Grove`
+- Run length: `8 waves`
+- Final boss: `Goblin Boss` on wave 8
+- Statue roster: `Sentinel`, `Huntress`, `Divine Guardian`, `Frost Maiden`, `Arcane Weaver`
+- Equipment pool: `Power Rune`, `Range Rune`, `Quickstep Rune`, `Keen Rune`, `Channel Rune`, `Guard Rune`
 
 Definition of done:
 
 - The scope is written down and not expanded during implementation
+- The canonical frozen spec lives in `docs/TANGY_MVP_ADAPTATION.md`
 
 ### Step 2. Add adaptation flags to data
 
@@ -154,12 +159,12 @@ Definition of done:
 
 Recommended MVP pool:
 
-- Range Rune
 - Power Rune
+- Range Rune
+- Quickstep Rune
+- Keen Rune
+- Channel Rune
 - Guard Rune
-- Focus Lens
-- Venom Rune
-- Echo Rune
 
 Definition of done:
 

@@ -150,6 +150,74 @@ One polished boss with readable phase changes is more valuable than many bosses 
 
 The MVP should target one polished adaptation slice, not the full final game.
 
+## Frozen MVP Slice v1
+
+This is the locked scope for the first adaptation build.
+
+### Map
+
+- `The Sacred Grove`
+- Reason: it already matches the onboarding role of the project and is the cheapest place to prove the adaptation loop
+
+### Run Length
+
+- 8 waves total
+- Wave 8 is the final boss wave for the slice
+- Reason: this is short enough for fast iteration and long enough to test setup, repositioning, equipment, and one climax fight
+
+### Boss
+
+- `Goblin Boss` retuned as the only MVP boss
+- The boss should be adapted into a tactical fight with at least 2 readable phases
+- Reason: it is the simplest existing boss resource to repurpose without overbuilding the slice
+
+### Statue Roster
+
+- Sentinel
+- Huntress
+- Divine Guardian
+- Frost Maiden
+- Arcane Weaver
+
+Reason:
+
+- This set gives us frontline, isolated DPS, support aura, control, and flexible ranged damage without needing to rebalance the full 7-statue roster yet
+
+### Equipment Pool
+
+The MVP equipment pool is locked to 6 items:
+
+- `Damage Boost` -> reframed as `Power Rune`
+- `Range Extension` -> reframed as `Range Rune`
+- `Speed Enchant` -> reframed as `Quickstep Rune`
+- `Critical Strike` -> reframed as `Keen Rune`
+- `Ability Mastery` -> reframed as `Channel Rune`
+- `Guard Rune` -> new MVP equipment item for frontline health/threat support
+
+Reason:
+
+- Five of these already map cleanly to existing upgrade resources
+- Only one new equipment item is required to complete the first tactical set
+
+### Systems Included In Slice
+
+- Shop-phase reposition
+- 1 in-combat relocate charge per wave
+- 3 role passives: frontline, precision DPS, support
+- 3 to 4 positioning synergies
+- Statue-bound equipment
+- Soft aggro/focus indicators
+- One 2-phase boss fight
+
+### Systems Deferred
+
+- Earthshaker and Shadow Dancer role retune
+- Multiple bosses
+- Additional maps
+- Crafting/cauldron systems
+- Endless adaptation
+- Full item catalog expansion
+
 ### Included
 
 - 1 map

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3 uid="uid://equip_guard_rune_p1"]
+
+[ext_resource type="Script" path="res://scripts/data/equipment_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "guard_rune_plus1"
+display_name = "Guard Rune"
+description = "Versão aprimorada. A estátua se torna uma fortaleza que atrai toda a ira inimiga."
+rarity = 1
+shop_cost = 180
+allowed_roles = []
+item_tier = 1
+is_mergeable = false
+merge_result_id = ""
+bonus_damage_flat = 0.0
+bonus_damage_percent = 0.0
+bonus_attack_speed = 0.0
+bonus_range = 0.0
+bonus_crit_chance = 0.0
+bonus_threat = 5.0
+taunt_radius = 140.0
+on_hit_slow = 0.0
+on_hit_slow_duration = 1.2
+on_hit_burn_dps = 0.0
+on_hit_burn_duration = 2.0
+execute_hp_threshold = 0.0
+execute_damage_mult = 1.5
+gold_per_kill = 0
+statue_tint = Color(0.65, 0.85, 1.1, 1.0)
+glow_color = Color(0.2, 0.5, 1.0, 0.7)

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3 uid="uid://equip_range_rune"]
+
+[ext_resource type="Script" path="res://scripts/data/equipment_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "range_rune"
+display_name = "Range Rune"
+description = "Expande o campo de visão da estátua. Inimigos a distância não podem se esconder."
+rarity = 0
+shop_cost = 180
+allowed_roles = []
+item_tier = 0
+is_mergeable = true
+merge_result_id = "range_rune_plus1"
+bonus_damage_flat = 0.0
+bonus_damage_percent = 0.0
+bonus_attack_speed = 0.0
+bonus_range = 50.0
+bonus_crit_chance = 0.0
+bonus_threat = 0.0
+taunt_radius = 0.0
+on_hit_slow = 0.0
+on_hit_slow_duration = 1.2
+on_hit_burn_dps = 0.0
+on_hit_burn_duration = 2.0
+execute_hp_threshold = 0.0
+execute_damage_mult = 1.5
+gold_per_kill = 0
+statue_tint = Color(0.7, 1.0, 0.8, 1.0)
+glow_color = Color(0.2, 0.9, 0.5, 0.35)

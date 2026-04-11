@@ -40,18 +40,8 @@ func _apply_setup(data: Dictionary) -> void:
 		return
 	
 	match data.type:
-		"statue":
-			_setup_statue(data.resource)
-		"artifact":
-			_setup_artifact(data.resource)
-		"consumable":
-			# Pass resource if available, otherwise fall back to data dict
-			if data.resource:
-				_setup_consumable(data.resource)
-			else:
-				_setup_consumable(data.get("data", {}))
-		"upgrade":
-			_setup_upgrade(data.resource)
+		"equipment":
+			_setup_equipment(data.resource)
 	
 	# Show price with discount indicator if applicable
 	if data.get("discounted", false) and data.has("original_cost"):
@@ -62,115 +52,56 @@ func _apply_setup(data: Dictionary) -> void:
 	update_affordability(GameManager.gold)
 
 
-func _setup_statue(statue: Resource) -> void:
-	if not statue:
+func _setup_equipment(equipment: Resource) -> void:
+	if not equipment:
 		return
-	# TODO: Replace with actual statue portrait textures
-	# For now, just show the name
-	if icon and statue.portrait_texture:
-		icon.texture = statue.portrait_texture
+	
 	if name_label:
-		name_label.text = statue.display_name
-	
-	# Show rarity
-	var rarity_names = ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
-	if type_label:
-		type_label.text = "Statue • %s" % rarity_names[statue.rarity]
-		type_label.modulate = _get_rarity_color(statue.rarity)
-	
-	# Add tooltip with stats
-	tooltip_text = "%s\n\nDMG: %.0f | SPD: %.2f | RNG: %.0f\n%s" % [
-		statue.display_name,
-		statue.base_damage,
-		statue.attack_speed,
-		statue.attack_range,
-		statue.ability_name if statue.ability_name else ""
-	]
-	
-	# Rarity border color
-	var stylebox = StyleBoxFlat.new()
-	stylebox.set_border_width_all(2)
-	stylebox.border_color = _get_rarity_color(statue.rarity)
-	stylebox.bg_color = Color(0.15, 0.15, 0.2, 0.9)
-	stylebox.set_corner_radius_all(8)
-	add_theme_stylebox_override("panel", stylebox)
-
-
-func _setup_artifact(artifact: Resource) -> void:
-	if not artifact:
-		return
-	# TODO: Replace with actual artifact icon textures
-	if icon and artifact.icon_texture:
-		icon.texture = artifact.icon_texture
-	if name_label:
-		name_label.text = artifact.display_name
+		name_label.text = equipment.display_name
+		
+	# Placeholder icon if none provided (for now, runas don't have icons defined in EquipmentData, so we skip or use a generic one)
+	if icon:
+		icon.texture = null # Could generate a color block or something
 	
 	var rarity_names = ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
-	if type_label:
-		type_label.text = "Artifact • %s" % rarity_names[artifact.rarity]
-		type_label.modulate = _get_rarity_color(artifact.rarity)
+	var rarity = equipment.rarity if "rarity" in equipment else 0
 	
-	# Add tooltip with effect description
-	tooltip_text = "%s\n\n%s" % [artifact.display_name, artifact.description]
+	if type_label:
+		var extra = " (Mergeable)" if getattr(equipment, "is_mergeable", false) else ""
+		var tier = getattr(equipment, "item_tier", 0)
+		var tier_str = "T" + str(tier+1) if tier > 0 else "Base"
+		type_label.text = "Rune [%s] • %s%s" % [tier_str, rarity_names[rarity], extra]
+		type_label.modulate = _get_rarity_color(rarity)
+		
+	# Build tooltip for stats
+	var tt = equipment.display_name + "\n\n"
+	if "description" in equipment and equipment.description:
+		tt += equipment.description + "\n\n"
+	
+	var stats = []
+	if getattr(equipment, "bonus_damage_flat", 0) > 0: stats.append("+%d DMG" % equipment.bonus_damage_flat)
+	if getattr(equipment, "bonus_damage_percent", 0) > 0: stats.append("+%d%% DMG" % int(equipment.bonus_damage_percent * 100))
+	if getattr(equipment, "bonus_attack_speed", 0) > 0: stats.append("+%d%% AS" % int(equipment.bonus_attack_speed * 100))
+	if getattr(equipment, "bonus_range", 0) > 0: stats.append("+%d Range" % equipment.bonus_range)
+	if getattr(equipment, "bonus_crit_chance", 0) > 0: stats.append("+%d%% Crit" % int(equipment.bonus_crit_chance * 100))
+	if getattr(equipment, "bonus_threat", 0) > 0: stats.append("+%d Threat" % equipment.bonus_threat)
+	
+	if stats.size() > 0:
+		tt += "Stats: " + ", ".join(stats)
+	
+	tooltip_text = tt
 	
 	var stylebox = StyleBoxFlat.new()
 	stylebox.set_border_width_all(2)
-	stylebox.border_color = Color(0.6, 0.3, 0.8)  # Purple for artifacts
-	stylebox.bg_color = Color(0.18, 0.12, 0.22, 0.9)
+	stylebox.border_color = _get_rarity_color(rarity)
+	stylebox.bg_color = Color(0.1, 0.15, 0.2, 0.9)  # Dark blue-ish for runes
 	stylebox.set_corner_radius_all(8)
 	add_theme_stylebox_override("panel", stylebox)
 
-
-func _setup_consumable(data: Variant) -> void:
-	# Handle both Dictionary (old) and Resource (new) data
-	var item_name: String = ""
-	var item_desc: String = ""
-	
-	if data is Resource:
-		item_name = data.display_name if data.display_name else "Consumable"
-		item_desc = data.description if data.description else ""
-	else:
-		item_name = data.get("name", "Consumable")
-		item_desc = data.get("desc", "")
-	
-	if name_label:
-		name_label.text = item_name
-	if type_label:
-		type_label.text = "Single Use"
-		type_label.modulate = Color(0.4, 0.8, 0.4)
-	
-	# Add tooltip
-	tooltip_text = "%s\n\n%s" % [item_name, item_desc]
-	
-	var stylebox = StyleBoxFlat.new()
-	stylebox.set_border_width_all(2)
-	stylebox.border_color = Color(0.4, 0.8, 0.4)  # Green for consumables
-	stylebox.bg_color = Color(0.12, 0.18, 0.12, 0.9)
-	stylebox.set_corner_radius_all(8)
-	add_theme_stylebox_override("panel", stylebox)
-
-
-func _setup_upgrade(upgrade: Resource) -> void:
-	if not upgrade:
-		return
-	
-	if name_label:
-		name_label.text = upgrade.display_name if upgrade.display_name else "Upgrade"
-	
-	if type_label:
-		type_label.text = "⬆️ Statue Upgrade"
-		type_label.modulate = Color(1.0, 0.6, 0.2)  # Orange
-	
-	# Add tooltip with effect
-	var effect_desc = upgrade.get_effect_description() if upgrade.has_method("get_effect_description") else upgrade.description
-	tooltip_text = "%s\n\n%s" % [upgrade.display_name, effect_desc]
-	
-	var stylebox = StyleBoxFlat.new()
-	stylebox.set_border_width_all(2)
-	stylebox.border_color = Color(1.0, 0.6, 0.2)  # Orange for upgrades
-	stylebox.bg_color = Color(0.22, 0.16, 0.10, 0.9)
-	stylebox.set_corner_radius_all(8)
-	add_theme_stylebox_override("panel", stylebox)
+func getattr(obj: Object, prop: String, default: Variant) -> Variant:
+	if prop in obj:
+		return obj.get(prop)
+	return default
 
 
 func _get_rarity_color(rarity: int) -> Color:

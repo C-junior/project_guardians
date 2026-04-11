@@ -26,12 +26,37 @@ var ability_ready: bool = false
 var is_attacking: bool = false
 var in_blade_storm: bool = false  # For Shadow Dancer ability
 var applied_upgrades: Array = []   # Track applied upgrades
+var is_relocating: bool = false     # True while being dragged for repositioning
 
 # Modifiers from artifacts
 var damage_modifier: float = 1.0
 var attack_speed_modifier: float = 1.0
 var cooldown_modifier: float = 1.0
 var range_modifier: float = 0.0
+
+# --- Tangy MVP: Role Passive System ---
+var passive_active: bool = false          # Is this statue's passive currently triggered?
+var _passive_dmg_bonus: float = 0.0      # Extra damage_modifier added by active passive
+var _passive_dr_bonus: float = 0.0       # Flat damage-reduction from sacred_line
+var _aura_timer: float = 0.0             # Countdown for sanctuary_aura heal pulse
+var _passive_indicator: Node2D = null    # Green/gray ring node (created in _ready)
+var _focus_icon: Label = null            # Red "!" shown when enemies are targeting this statue
+var _is_enemy_targeted: bool = false     # Set by enemy_base when targeting this statue
+
+# --- Runa (Item) Slots ---
+## Array of EquipmentData resources socketed into this statue.
+## Max slots = evolution_tier + 1  (Tier0→1, Tier1→2, Tier2→3, Tier3→4)
+var equipped_items: Array[Resource] = []
+## Accumulated bonus modifiers (recalculated from all slots on any change)
+var _equip_dmg_bonus: float = 0.0
+var _equip_speed_bonus: float = 0.0
+var _equip_range_bonus: float = 0.0
+var _equip_threat_bonus: float = 0.0
+## Reference to the visual glow rings (one Node2D per slot)
+var _equipment_glows: Array[Node2D] = []
+## Backward-compat alias — returns first item or null
+var equipped_item: Resource:
+	get: return equipped_items[0] if equipped_items.size() > 0 else null
 
 # References
 @onready var sprite: Sprite2D = $Sprite
@@ -50,6 +75,11 @@ func _ready() -> void:
 	# Hide range indicator by default
 	if range_indicator:
 		range_indicator.visible = false
+	
+	# Build passive ring indicator (small colored ring drawn over sprite)
+	_build_passive_indicator()
+	# Build focus icon for soft-aggro feedback
+	_build_focus_icon()
 
 
 func setup(data: Resource, tier: int = 0) -> void:
@@ -140,6 +170,177 @@ func refresh_global_modifiers() -> void:
 	])
 
 
+# ===========================================================================
+# RUNA (ITEM) SLOTS — multi-slot equipment system
+# ===========================================================================
+
+## Returns how many item slots this statue has based on its evolution tier.
+func get_max_slots() -> int:
+	return evolution_tier + 1  # Tier0=1, Tier1=2, Tier2=3, Tier3=4
+
+
+## Returns true if there is at least one empty slot available.
+func has_empty_slot() -> bool:
+	return equipped_items.size() < get_max_slots()
+
+
+## Equip a runa into the next available slot.
+## Returns true on success, false if all slots are full.
+func equip_item(item: Resource) -> bool:
+	if item == null:
+		return false
+	if not has_empty_slot():
+		print("[Slots] %s — all %d slots full" % [statue_data.display_name if statue_data else "?", get_max_slots()])
+		return false
+	equipped_items.append(item)
+	_recalculate_all_equipment_bonuses()
+	_refresh_equipment_visuals()
+	print("[Slots] %s socketed into %s (%d/%d)" % [
+		item.display_name if item else "null",
+		statue_data.display_name if statue_data else "?",
+		equipped_items.size(), get_max_slots()
+	])
+	return true
+
+
+## Equip into a specific slot index (replaces whatever is there).
+## Returns the item that was displaced, or null.
+func equip_item_at(slot: int, item: Resource) -> Resource:
+	if slot < 0 or slot >= get_max_slots():
+		push_warning("[Slots] Invalid slot index %d" % slot)
+		return null
+	var displaced: Resource = null
+	if slot < equipped_items.size():
+		displaced = equipped_items[slot]
+		equipped_items[slot] = item
+	else:
+		# Pad with nulls up to slot, then assign
+		while equipped_items.size() < slot:
+			equipped_items.append(null)
+		equipped_items.append(item)
+	_recalculate_all_equipment_bonuses()
+	_refresh_equipment_visuals()
+	return displaced
+
+
+## Remove the item at a given slot index. Returns the removed item.
+func unequip_item_at(slot: int) -> Resource:
+	if slot < 0 or slot >= equipped_items.size():
+		return null
+	var removed: Resource = equipped_items[slot]
+	equipped_items.remove_at(slot)
+	_recalculate_all_equipment_bonuses()
+	_refresh_equipment_visuals()
+	return removed
+
+
+## Backward-compat: remove whatever is in slot 0.
+func unequip_item() -> Resource:
+	return unequip_item_at(0)
+
+
+## Recalculate ALL equipment bonuses from scratch across all slots.
+## Call any time equipped_items changes.
+func _recalculate_all_equipment_bonuses() -> void:
+	# Revert old totals
+	damage_modifier -= _equip_dmg_bonus
+	attack_speed_modifier -= _equip_speed_bonus
+	range_modifier -= _equip_range_bonus
+	if statue_data and statue_data.get("base_threat") != null:
+		statue_data.base_threat -= _equip_threat_bonus
+	
+	# Reset accumulators
+	_equip_dmg_bonus = 0.0
+	_equip_speed_bonus = 0.0
+	_equip_range_bonus = 0.0
+	_equip_threat_bonus = 0.0
+	
+	# Sum up from every non-null slot
+	for item in equipped_items:
+		if item == null:
+			continue
+		if damage > 0:
+			_equip_dmg_bonus += item.bonus_damage_flat / damage
+		_equip_dmg_bonus += item.bonus_damage_percent
+		_equip_speed_bonus += item.bonus_attack_speed
+		_equip_range_bonus += item.bonus_range
+		_equip_threat_bonus += item.bonus_threat
+	
+	# Apply totals
+	damage_modifier += _equip_dmg_bonus
+	attack_speed_modifier += _equip_speed_bonus
+	range_modifier += _equip_range_bonus
+	if statue_data and statue_data.get("base_threat") != null:
+		statue_data.base_threat += _equip_threat_bonus
+	
+	# Update timer and collision
+	if attack_timer:
+		var actual_speed = attack_speed * attack_speed_modifier
+		attack_timer.wait_time = 1.0 / maxf(actual_speed, 0.01)
+	var attack_collision = get_node_or_null("AttackRange/CollisionShape")
+	if attack_collision and attack_collision.shape:
+		attack_collision.shape.radius = attack_range + range_modifier
+	if range_indicator:
+		_setup_range_indicator()
+	print("[Slots] Totals — DMG+%.2f SPD+%.2f RNG+%.0f THREAT+%.1f" % [
+		_equip_dmg_bonus, _equip_speed_bonus, _equip_range_bonus, _equip_threat_bonus])
+
+
+## Rebuild all equipment glow rings and apply blended sprite tint.
+func _refresh_equipment_visuals() -> void:
+	# Clear old glow nodes
+	for g in _equipment_glows:
+		if g and is_instance_valid(g):
+			g.queue_free()
+	_equipment_glows.clear()
+	
+	# No items — restore white tint
+	var active_items: Array = equipped_items.filter(func(i): return i != null)
+	if active_items.is_empty():
+		if sprite:
+			sprite.modulate = Color.WHITE
+		return
+	
+	# Blend tints from all equipped items
+	var blended = Color.WHITE
+	for item in active_items:
+		blended = blended.lerp(item.statue_tint, 0.5)
+	if sprite:
+		sprite.modulate = blended
+	
+	# Draw one glow ring per item, offset by angle
+	for i in active_items.size():
+		var item = active_items[i]
+		var gc: Color = item.glow_color
+		if gc.a > 0.01:
+			var radius_offset = 22.0 + i * 6.0
+			var glow = _EquipGlowRing.new(gc, radius_offset)
+			glow.z_index = 1
+			add_child(glow)
+			_equipment_glows.append(glow)
+
+
+## Tiny inline class — draws the animated colored ring for equipped items.
+class _EquipGlowRing extends Node2D:
+	var _color: Color
+	var _radius: float
+	var _t: float = 0.0
+	
+	func _init(c: Color, r: float = 22.0) -> void:
+		_color = c
+		_radius = r
+	
+	func _process(dt: float) -> void:
+		_t += dt
+		queue_redraw()
+	
+	func _draw() -> void:
+		var pulse = 0.7 + 0.3 * sin(_t * 2.5)
+		var c = _color
+		c.a = _color.a * pulse
+		draw_arc(Vector2.ZERO, _radius, 0, TAU, 24, c, 2.5)
+
+
 func _setup_range_indicator() -> void:
 	# Create circular range indicator texture
 	var size = int((attack_range + range_modifier) * 2)
@@ -184,7 +385,7 @@ func _setup_tier_glow() -> void:
 
 var _was_mouse_over: bool = false
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	
 	# Mouse hover detection (reliable fallback using position polling)
 	var mouse_pos = get_global_mouse_position()
@@ -209,6 +410,18 @@ func _process(_delta: float) -> void:
 	if current_target and is_instance_valid(current_target):
 		var direction = (current_target.position - position).normalized()
 		sprite.flip_h = direction.x < 0
+	
+	# --- Tangy MVP: evaluate role passive every frame (cheap checks) ---
+	if GameManager.is_tangy_mvp_active() and statue_data and statue_data.has_tactical_passive():
+		evaluate_passive()
+		_update_passive_indicator()
+	
+	# Sanctuary aura heal pulse timer
+	if passive_active and statue_data and statue_data.passive_id == "sanctuary_aura":
+		_aura_timer -= delta
+		if _aura_timer <= 0.0:
+			_aura_timer = 2.0
+			_pulse_sanctuary_aura()
 
 
 func _on_attack_timer() -> void:
@@ -752,6 +965,246 @@ func _ability_frozen_prison() -> void:
 	print("[Ability] Frozen Prison - Froze %d enemies" % enemies.size())
 
 
+# ===========================================================================
+# TANGY MVP — ROLE PASSIVE SYSTEM
+# ===========================================================================
+
+## Main passive evaluator — called every frame when MVP mode is active.
+## Checks which passive this statue has and applies/removes the bonus.
+func evaluate_passive() -> void:
+	if not statue_data:
+		return
+	
+	var was_active = passive_active
+	
+	match statue_data.passive_id:
+		"lone_hunt":
+			passive_active = _check_lone_hunt()
+		"sacred_line":
+			passive_active = _check_sacred_line()
+		"sanctuary_aura":
+			passive_active = true  # Always active; pulse handled in _process
+			if _aura_timer <= 0.0:
+				_aura_timer = 2.0
+		"frost_zone":
+			passive_active = _check_frost_zone()
+		_:
+			passive_active = false
+	
+	# Apply / remove damage modifier bonus when state changes
+	if passive_active != was_active:
+		_apply_passive_bonus(passive_active)
+
+
+## lone_hunt: Huntress gets +passive_bonus_value damage when no ally is within 90px.
+func _check_lone_hunt() -> bool:
+	var nearby = get_adjacent_allies(90.0)
+	return nearby.is_empty()
+
+
+## sacred_line: Sentinel gets DR when it is the most exposed (closest to path entry).
+func _check_sacred_line() -> bool:
+	if not arena:
+		return false
+	var all_statues = GameManager.placed_statues
+	if all_statues.is_empty():
+		return false
+	# "Most exposed" = closest to the first path point (spawn side)
+	var path_start := Vector2.ZERO
+	if arena.enemy_paths.size() > 0:
+		path_start = arena.enemy_paths[0].curve.get_point_position(0)
+	var min_dist = position.distance_to(path_start)
+	for s in all_statues:
+		if s == self or not is_instance_valid(s):
+			continue
+		if s.position.distance_to(path_start) < min_dist:
+			return false  # Another statue is closer to the front
+	return true
+
+
+## sanctuary_aura: Heal all allies within aura_radius for 5% of their max_health.
+func _pulse_sanctuary_aura() -> void:
+	if not arena or not statue_data:
+		return
+	var heal_pct: float = 0.05
+	for ally in get_adjacent_allies(statue_data.aura_radius):
+		if ally.has_method("heal"):
+			var heal_amt = ally.statue_data.max_health * heal_pct if ally.statue_data else 5.0
+			ally.heal(heal_amt)
+			# Visual: soft green sparkle at ally position
+			if arena:
+				EffectsManager.create_heal_particles(arena, ally.position)
+	# Show pulse ring on self
+	if arena:
+		EffectsManager.create_shockwave(arena, position,
+			Color(0.3, 1.0, 0.5, 0.6), statue_data.aura_radius, 0.4)
+
+
+## frost_zone: Frost Maiden boosts slow duration when a Frontline ally is within 90px.
+func _check_frost_zone() -> bool:
+	for ally in get_adjacent_allies(90.0):
+		if ally.statue_data and ally.statue_data.tactical_role == 1:  # 1 = Frontline
+			return true
+	return false
+
+
+## Apply or remove the passive bonus when the active state flips.
+func _apply_passive_bonus(is_now_active: bool) -> void:
+	if not statue_data:
+		return
+	
+	match statue_data.passive_id:
+		"lone_hunt":
+			# Damage modifier delta
+			if is_now_active:
+				_passive_dmg_bonus = statue_data.passive_bonus_value
+				damage_modifier += _passive_dmg_bonus
+			else:
+				damage_modifier -= _passive_dmg_bonus
+				_passive_dmg_bonus = 0.0
+			damage_modifier = max(0.1, damage_modifier)
+		"sacred_line":
+			# DR stored separately; applied in take_damage via get_passive_dr()
+			_passive_dr_bonus = statue_data.passive_bonus_value if is_now_active else 0.0
+		"frost_zone":
+			# Slow multiplier read dynamically via get_slow_multiplier(); no stored delta needed
+			pass
+	
+	print("[Passive] %s → %s: %s" % [
+		statue_data.display_name,
+		statue_data.passive_name,
+		"ACTIVE" if is_now_active else "INACTIVE"
+	])
+
+
+## Returns the flat DR fraction granted by an active passive (used in take_damage).
+func get_passive_dr() -> float:
+	return _passive_dr_bonus
+
+
+## Returns the slow duration multiplier for frost_zone (used by enemy apply_slow).
+func get_slow_multiplier() -> float:
+	if statue_data and statue_data.passive_id == "frost_zone" and passive_active:
+		return 1.4
+	return 1.0
+
+
+## Returns total threat weight for soft-aggro (base_threat + guard rune bonus).
+func get_threat_value() -> float:
+	if not statue_data:
+		return 1.0
+	var threat = statue_data.base_threat
+	# Guard Rune adds +0.3 per equipped copy
+	for upg in applied_upgrades:
+		if upg.get("id") == "guard_rune" or upg.get("passive_id") == "guard_rune":
+			threat += 0.3
+	return threat
+
+
+## Returns all allied statues within radius px of this statue.
+func get_adjacent_allies(radius: float) -> Array:
+	var result: Array = []
+	if not arena:
+		return result
+	for s in GameManager.placed_statues:
+		if s == self or not is_instance_valid(s):
+			continue
+		if position.distance_to(s.position) <= radius:
+			result.append(s)
+	return result
+
+
+## Returns all placed statues that have the Frontline role.
+func get_frontline_statues() -> Array:
+	var result: Array = []
+	for s in GameManager.placed_statues:
+		if not is_instance_valid(s):
+			continue
+		if s.statue_data and s.statue_data.tactical_role == 1:
+			result.append(s)
+	return result
+
+
+## Heal this statue (called by sanctuary_aura pulse).
+func heal(amount: float) -> void:
+	if not statue_data:
+		return
+	# Statues don't track HP in base game; we visualise only for now
+	# (If HP system is added later, update `current_health` here)
+	if arena:
+		EffectsManager.create_heal_particles(arena, position)
+
+
+## Pause/unpause this statue's attack cycle (used during combat relocation).
+func set_paused(paused: bool) -> void:
+	is_relocating = paused
+	if attack_timer:
+		if paused:
+			attack_timer.paused = true
+		else:
+			attack_timer.paused = false
+	# Ghost/unghost the sprite
+	var spr = get_node_or_null("Sprite")
+	if spr:
+		spr.modulate = Color(0.6, 0.8, 1.0, 0.5) if paused else Color.WHITE
+
+
+# --- Passive visual indicator ---
+
+func _build_passive_indicator() -> void:
+	if not GameManager.is_tangy_mvp_active():
+		return
+	# Small ring node drawn as a ColorRect circle at sprite level
+	_passive_indicator = Node2D.new()
+	_passive_indicator.name = "PassiveRing"
+	_passive_indicator.z_index = 5
+	add_child(_passive_indicator)
+	# Draw a thin ring using a script-drawn canvas item
+	_passive_indicator.draw.connect(_draw_passive_ring.bind(_passive_indicator))
+
+
+func _draw_passive_ring(node: Node2D) -> void:
+	if not statue_data or not statue_data.has_tactical_passive():
+		return
+	var color = Color(0.2, 1.0, 0.4, 0.85) if passive_active else Color(0.4, 0.4, 0.4, 0.5)
+	node.draw_arc(Vector2.ZERO, 34.0, 0.0, TAU, 32, color, 3.0)
+
+
+func _update_passive_indicator() -> void:
+	if _passive_indicator:
+		_passive_indicator.queue_redraw()
+
+
+# --- Focus icon (shown when enemies are targeting this statue) ---
+
+func _build_focus_icon() -> void:
+	if not GameManager.is_tangy_mvp_active():
+		return
+	_focus_icon = Label.new()
+	_focus_icon.text = "!"
+	_focus_icon.add_theme_font_size_override("font_size", 22)
+	_focus_icon.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15))
+	_focus_icon.add_theme_color_override("font_outline_color", Color.BLACK)
+	_focus_icon.add_theme_constant_override("outline_size", 4)
+	_focus_icon.position = Vector2(-6, -56)
+	_focus_icon.visible = false
+	_focus_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_focus_icon.z_index = 10
+	add_child(_focus_icon)
+
+
+## Called by enemy_base when it begins or stops targeting this statue.
+func set_enemy_focused(focused: bool) -> void:
+	_is_enemy_targeted = focused
+	if _focus_icon:
+		_focus_icon.visible = focused
+		if focused:
+			# Bounce animation
+			var t = create_tween().set_loops(3)
+			t.tween_property(_focus_icon, "position:y", -64.0, 0.15)
+			t.tween_property(_focus_icon, "position:y", -56.0, 0.15)
+
+
 ## Screen shake utility
 func _screen_shake(duration: float = 0.2, intensity: float = 5.0) -> void:
 	var camera = get_viewport().get_camera_2d()
@@ -881,6 +1334,29 @@ func _show_stats_tooltip() -> void:
 		upgrades_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vbox.add_child(upgrades_label)
 	
+	# --- Tangy MVP: passive status row ---
+	if GameManager.is_tangy_mvp_active() and statue_data and statue_data.has_tactical_passive():
+		var passive_label = Label.new()
+		if passive_active:
+			passive_label.text = "🟢 %s: ACTIVE" % statue_data.passive_name
+			passive_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
+		else:
+			passive_label.text = "⚫ %s: Inactive" % statue_data.passive_name
+			passive_label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
+		passive_label.add_theme_font_size_override("font_size", 11)
+		passive_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vbox.add_child(passive_label)
+		# Description hint
+		if statue_data.passive_description != "":
+			var desc_label = Label.new()
+			desc_label.text = statue_data.passive_description
+			desc_label.add_theme_font_size_override("font_size", 9)
+			desc_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+			desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			desc_label.custom_minimum_size.x = 200
+			vbox.add_child(desc_label)
+	
 	# Show modifiers if any are active
 	var mod_texts = []
 	if damage_modifier > 1.0:
@@ -922,17 +1398,30 @@ func _on_mouse_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: 
 			show_range()
 
 
-## Click to select for evolution
+## Click to select for repositioning (MVP) or evolution
 func _input(event: InputEvent) -> void:
-	if not EvolutionManager.is_evolving:
+	if not event is InputEventMouseButton or not event.pressed:
+		return
+	if not event.button_index == MOUSE_BUTTON_LEFT:
 		return
 	
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		# Check if click is on this statue
-		var mouse_pos = get_global_mouse_position()
-		var distance = position.distance_to(mouse_pos)
-		if distance < 40:  # Click radius
-			EvolutionManager.select_statue(self)
+	var mouse_pos = get_global_mouse_position()
+	var distance = position.distance_to(mouse_pos)
+	if distance > 40:
+		return  # Not clicking on this statue
+	
+	# --- Tangy MVP: click to pick up for repositioning ---
+	if GameManager.is_tangy_mvp_active() and arena and arena.has_method("begin_relocate_shop"):
+		# Only grab in shop phase; combat grab is triggered via HUD button
+		if GameManager.current_state == GameManager.GameState.SHOP:
+			if not arena.relocating_statue:  # Don't grab if already moving another
+				arena.begin_relocate_shop(self)
+				get_viewport().set_input_as_handled()
+				return
+	
+	# --- Original evolution mode ---
+	if EvolutionManager.is_evolving:
+		EvolutionManager.select_statue(self)
 
 
 ## Handle right-click to cancel evolution

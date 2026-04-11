@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3 uid="uid://equip_swift_lens"]
+
+[ext_resource type="Script" path="res://scripts/data/equipment_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "swift_lens"
+display_name = "Swift Lens"
+description = "A precision-ground lens that sharpens attack timing. Grants bonus range and attack speed."
+rarity = 0
+shop_cost = 100
+allowed_roles = []
+bonus_damage_flat = 0.0
+bonus_damage_percent = 0.0
+bonus_attack_speed = 0.20
+bonus_range = 24.0
+bonus_crit_chance = 0.0
+bonus_threat = 0.0
+taunt_radius = 0.0
+on_hit_slow = 0.0
+on_hit_slow_duration = 1.2
+on_hit_burn_dps = 0.0
+on_hit_burn_duration = 2.0
+execute_hp_threshold = 0.0
+execute_damage_mult = 1.5
+gold_per_kill = 0
+statue_tint = Color(1.0, 1.05, 0.85, 1.0)
+glow_color = Color(0.9, 1.0, 0.3, 0.4)

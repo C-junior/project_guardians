@@ -45,6 +45,13 @@ var can_summon: bool = false
 var can_teleport: bool = false
 var has_shield: bool = false
 
+# --- Tangy MVP: Soft Aggro & Boss Phase ---
+var statue_targeting_chance: float = 0.0  # 0.0 = never, 1.0 = always
+var current_statue_target: Node = null    # Statue currently being attacked
+var threat_range: float = 120.0           # Radius to scan for statues
+var _aggro_eval_timer: float = 0.0        # Seconds until next targeting roll
+var boss_phase: int = 1                   # 1 = normal, 2 = enraged
+
 # References
 @onready var sprite: Sprite2D = $Sprite
 @onready var shadow: Sprite2D = $Shadow
@@ -173,6 +180,14 @@ func _physics_process(delta: float) -> void:
 	# Don't move if frozen or stunned
 	if is_frozen or is_stunned:
 		return
+	
+	# --- Tangy MVP: soft aggro / boss phase evaluation --
+	if GameManager.is_tangy_mvp_active():
+		_aggro_eval_timer -= delta
+		if _aggro_eval_timer <= 0.0:
+			_aggro_eval_timer = 1.5  # Re-evaluate every 1.5 s
+			_evaluate_statue_targeting()
+			_check_phase_transition()
 	
 	# Calculate actual speed (with elite modifier)
 	var actual_speed = move_speed * elite_speed_mult
@@ -356,7 +371,16 @@ func apply_stun(duration: float) -> void:
 func apply_slow(amount: float, duration: float) -> void:
 	is_slowed = true
 	slow_amount = max(slow_amount, amount)  # Take stronger slow
-	slow_timer = max(slow_timer, duration)
+	# --- Tangy MVP: respect frost_zone slow multiplier from nearby Frost Maiden ---
+	var effective_duration = duration
+	if GameManager.is_tangy_mvp_active() and arena:
+		for statue in GameManager.placed_statues:
+			if is_instance_valid(statue) and statue.has_method("get_slow_multiplier"):
+				var mult = statue.get_slow_multiplier()
+				if mult > 1.0 and statue.position.distance_to(position) <= 150.0:
+					effective_duration *= mult
+					break
+	slow_timer = max(slow_timer, effective_duration)
 	slow_icon.visible = true
 
 
@@ -512,3 +536,81 @@ func _reach_crystal() -> void:
 	
 	if path_follow:
 		path_follow.queue_free()
+
+
+# ===========================================================================
+# TANGY MVP — SOFT AGGRO & BOSS PHASE SYSTEM
+# ===========================================================================
+
+## Evaluate whether this enemy should redirect its attention to a nearby statue.
+## Called every ~1.5 s from _physics_process when MVP mode is active.
+func _evaluate_statue_targeting() -> void:
+	if statue_targeting_chance <= 0.0 or not arena:
+		return
+	
+	# Probabilistic roll
+	if randf() > statue_targeting_chance:
+		_clear_statue_target()
+		return
+	
+	# Find the highest-threat statue within threat_range
+	var best_statue: Node = null
+	var best_threat: float = -1.0
+	
+	for statue in GameManager.placed_statues:
+		if not is_instance_valid(statue):
+			continue
+		if position.distance_to(statue.position) > threat_range:
+			continue
+		var threat = statue.get_threat_value() if statue.has_method("get_threat_value") else 1.0
+		if threat > best_threat:
+			best_threat = threat
+			best_statue = statue
+	
+	if best_statue:
+		_set_statue_target(best_statue)
+	else:
+		_clear_statue_target()
+
+
+## Redirect this enemy to fixate on the given statue.
+func _set_statue_target(statue: Node) -> void:
+	if current_statue_target == statue:
+		return
+	_clear_statue_target()  # Unfocus previous target
+	current_statue_target = statue
+	if statue.has_method("set_enemy_focused"):
+		statue.set_enemy_focused(true)
+
+
+## Clear the current statue target and notify it.
+func _clear_statue_target() -> void:
+	if current_statue_target and is_instance_valid(current_statue_target):
+		if current_statue_target.has_method("set_enemy_focused"):
+			current_statue_target.set_enemy_focused(false)
+	current_statue_target = null
+
+
+## Check if the boss should transition to Phase 2 (at 50% HP).
+func _check_phase_transition() -> void:
+	if not enemy_data or not enemy_data.get("is_boss"):
+		return
+	if boss_phase == 1 and current_health / max_health <= 0.5:
+		boss_phase = 2
+		_on_phase_2_start()
+
+
+## Boss Phase 2: always targets statues, gains speed, sheds slows.
+func _on_phase_2_start() -> void:
+	statue_targeting_chance = 1.0
+	is_slowed = false
+	slow_amount = 0.0
+	slow_timer = 0.0
+	is_frozen = false
+	freeze_timer = 0.0
+	move_speed *= 1.25
+	# Visual transformation flash
+	var t = create_tween()
+	t.tween_property(sprite, "modulate", Color(1.0, 0.2, 0.2), 0.15)
+	t.tween_property(sprite, "modulate", enemy_data.tint_color if enemy_data else Color.WHITE, 0.25)
+	print("[Boss] Phase 2 — statue-locking activated!")

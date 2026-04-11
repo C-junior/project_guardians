@@ -34,11 +34,21 @@ Definition of done:
 
 ### Step 2. Add adaptation flags to data
 
-Work:
+Status:
+
+- Complete
+
+Implemented:
 
 - Add role/passive fields to `StatueData`
 - Add optional map flag for Tangy-style adaptation mode
 - Add relocate charge count to run state
+
+Notes:
+
+- `The Sacred Grove` is now flagged as the Tangy MVP map
+- The 5-statue MVP roster now carries role/passive metadata in resources
+- `GameManager` now owns relocate charge state and helper methods for future movement steps
 
 Definition of done:
 

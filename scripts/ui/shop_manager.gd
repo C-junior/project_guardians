@@ -22,10 +22,7 @@ var items_generated_for_wave: int = -1  # Track which wave items were generated 
 var item_card_scene: PackedScene = preload("res://scenes/ui/shop_item_card.tscn")
 
 # Resource pools
-var statue_pool: Array[Resource] = []
-var artifact_pool: Array[Resource] = []
-var consumable_pool: Array[Resource] = []
-var upgrade_pool: Array[Resource] = []
+var equipment_pool: Array[Resource] = []
 
 # Close button reference
 @onready var close_button: Button = $Control/Panel/MarginContainer/VBoxContainer/Footer/CloseButton
@@ -53,55 +50,19 @@ func _on_game_state_changed(new_state: GameManager.GameState) -> void:
 
 
 func _load_item_pools() -> void:
-	# Load all statue resources
-	var statue_dir = DirAccess.open("res://resources/statues/")
-	if statue_dir:
-		statue_dir.list_dir_begin()
-		var file_name = statue_dir.get_next()
+	# Load all equipment resources (runes)
+	var dir = DirAccess.open("res://resources/equipment/")
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
 		while file_name != "":
 			if file_name.ends_with(".tres"):
-				var res = load("res://resources/statues/" + file_name)
+				var res = load("res://resources/equipment/" + file_name)
 				if res:
-					statue_pool.append(res)
-			file_name = statue_dir.get_next()
+					equipment_pool.append(res)
+			file_name = dir.get_next()
 	
-	# Load all artifact resources
-	var artifact_dir = DirAccess.open("res://resources/artifacts/")
-	if artifact_dir:
-		artifact_dir.list_dir_begin()
-		var file_name = artifact_dir.get_next()
-		while file_name != "":
-			if file_name.ends_with(".tres"):
-				var res = load("res://resources/artifacts/" + file_name)
-				if res:
-					artifact_pool.append(res)
-			file_name = artifact_dir.get_next()
-	
-	# Load all consumable resources
-	var consumable_dir = DirAccess.open("res://resources/consumables/")
-	if consumable_dir:
-		consumable_dir.list_dir_begin()
-		var file_name = consumable_dir.get_next()
-		while file_name != "":
-			if file_name.ends_with(".tres"):
-				var res = load("res://resources/consumables/" + file_name)
-				if res:
-					consumable_pool.append(res)
-			file_name = consumable_dir.get_next()
-	
-	# Load all upgrade resources
-	var upgrade_dir = DirAccess.open("res://resources/upgrades/")
-	if upgrade_dir:
-		upgrade_dir.list_dir_begin()
-		var file_name = upgrade_dir.get_next()
-		while file_name != "":
-			if file_name.ends_with(".tres"):
-				var res = load("res://resources/upgrades/" + file_name)
-				if res:
-					upgrade_pool.append(res)
-			file_name = upgrade_dir.get_next()
-	
-	print("[Shop] Loaded %d statues, %d artifacts, %d consumables, %d upgrades" % [statue_pool.size(), artifact_pool.size(), consumable_pool.size(), upgrade_pool.size()])
+	print("[Shop] Loaded %d equipment items" % equipment_pool.size())
 
 
 ## Open shop for preparation phase
@@ -129,73 +90,35 @@ func _generate_shop_items() -> void:
 		child.queue_free()
 	current_items.clear()
 	
+	if equipment_pool.is_empty():
+		return
+		
 	var item_count = base_item_count
-	# Add extra slots from artifacts
-	for artifact in GameManager.active_artifacts:
-		var extra = artifact.extra_shop_items if artifact.extra_shop_items else 0
-		if extra:
-			item_count += extra
 	
-	# Determine item distribution
-	# 40% statues, 25% artifacts, 15% consumables, 20% upgrades (roughly)
+	# Generate N random equipment items (runes)
 	for i in range(item_count):
-		var roll = randf()
-		var item_data: Dictionary = {}
+		var equipment = equipment_pool[randi() % equipment_pool.size()]
+		var cost = equipment.shop_cost if "shop_cost" in equipment else 100
 		
-		if roll < 0.40 and statue_pool.size() > 0:
-			# Statue
-			var statue = statue_pool[randi() % statue_pool.size()]
-			item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
-		elif roll < 0.65 and artifact_pool.size() > 0:
-			# Artifact
-			var artifact = artifact_pool[randi() % artifact_pool.size()]
-			# Don't offer already acquired artifacts
-			var already_has = false
-			for owned in GameManager.active_artifacts:
-				if owned.id == artifact.id:
-					already_has = true
-					break
-			if not already_has:
-				item_data = {"resource": artifact, "type": "artifact", "cost": artifact.get_cost()}
-			else:
-				# Fallback to statue
-				var statue = statue_pool[randi() % statue_pool.size()]
-				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
-		elif roll < 0.80 and consumable_pool.size() > 0:
-			# Consumable
-			var consumable = consumable_pool[randi() % consumable_pool.size()]
-			item_data = {"resource": consumable, "type": "consumable", "cost": consumable.base_cost}
-		elif upgrade_pool.size() > 0 and GameManager.placed_statues.size() > 0:
-			# Upgrade (only if player has placed statues to upgrade)
-			var upgrade = upgrade_pool[randi() % upgrade_pool.size()]
-			item_data = {"resource": upgrade, "type": "upgrade", "cost": upgrade.base_cost}
-		else:
-			# Fallback to statue
-			if statue_pool.size() > 0:
-				var statue = statue_pool[randi() % statue_pool.size()]
-				item_data = {"resource": statue, "type": "statue", "cost": statue.get_cost()}
+		var item_data: Dictionary = {
+			"resource": equipment, 
+			"type": "equipment", 
+			"cost": cost
+		}
 		
-		if item_data.size() > 0:
-			# Apply first purchase discount from blessing
-			if not first_purchase_made and GameManager.current_blessing:
-				var discount = GameManager.current_blessing.get("first_purchase_discount")
-				if discount and discount > 0:
-					item_data["original_cost"] = item_data["cost"]
-					item_data["cost"] = int(item_data["cost"] * (1.0 - discount))
-					item_data["discounted"] = true
-			current_items.append(item_data)
-			_create_item_card(item_data)
+		# Apply first purchase discount from blessing
+		if not first_purchase_made and GameManager.current_blessing:
+			var discount = GameManager.current_blessing.get("first_purchase_discount")
+			if discount and discount > 0:
+				item_data["original_cost"] = item_data["cost"]
+				item_data["cost"] = int(item_data["cost"] * (1.0 - discount))
+				item_data["discounted"] = true
+				
+		current_items.append(item_data)
+		_create_item_card(item_data)
 
 
-func _generate_random_consumable() -> Dictionary:
-	var consumables = [
-		{"name": "Battle Horn", "desc": "Abilities start ready", "cost": 100, "effect": "abilities_ready"},
-		{"name": "Gold Fever", "desc": "2x gold this wave", "cost": 150, "effect": "gold_boost"},
-		{"name": "Stone Walls", "desc": "+30% crystal HP", "cost": 75, "effect": "crystal_hp"},
-		{"name": "Slow Time", "desc": "Enemies 25% slower", "cost": 100, "effect": "slow_enemies"},
-	]
-	var chosen = consumables[randi() % consumables.size()]
-	return {"resource": null, "type": "consumable", "data": chosen, "cost": chosen.cost}
+
 
 
 func _create_item_card(item_data: Dictionary) -> void:

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=2 format=3 uid="uid://cmvpgrove001"]
+
+[ext_resource type="Script" path="res://scripts/data/map_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "tangy_mvp_grove"
+display_name = "Tangy MVP Grove"
+description = "8-wave tactical sandbox. Goblin King awaits at Wave 8. Test positioning, passives, and artifacts."
+difficulty = 1
+total_waves = 8
+elite_start_wave = 99
+flying_start_wave = 99
+shield_start_wave = 99
+starting_gold_bonus = 50
+wave_gold_multiplier = 1.2
+boss_wave_5 = ""
+boss_wave_10 = ""
+boss_wave_15 = ""
+boss_wave_20 = ""
+boss_wave_25 = ""
+background_color = Color(0.12, 0.18, 0.12, 1)
+path_color = Color(0.4, 0.35, 0.25, 1)
+path_count = 1
+path_selection_mode = 0
+arena_scene_path = ""
+tangy_mvp_enabled = true

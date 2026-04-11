@@ -35,6 +35,11 @@ var active_enemies: Array[Node] = []
 var wave_in_progress: bool = false
 var spawning_in_progress: bool = false  # Track if spawn sequence is still running
 
+# --- Tangy MVP: Repositioning System ---
+var relocating_statue: Node2D = null  # Statue currently being repositioned
+var relocating_from: Vector2i = Vector2i(-1, -1)  # Original grid cell
+var _highlighted_cells: Array[Node] = []  # ColorRect nodes currently highlighted
+
 # Preloaded scenes
 var statue_scene: PackedScene = preload("res://scenes/entities/statue.tscn")
 var enemy_scene: PackedScene = preload("res://scenes/entities/enemy.tscn")
@@ -441,6 +446,165 @@ func remove_statue(statue: Node2D) -> void:
 		statue.queue_free()
 
 
+# ===========================================================================
+# TANGY MVP — REPOSITIONING SYSTEM
+# ===========================================================================
+
+## Highlight all empty and valid grid cells in a friendly green-blue tint.
+func highlight_valid_cells() -> void:
+	clear_cell_highlights()
+	for x in range(GRID_COLS):
+		for y in range(GRID_ROWS):
+			var gp := Vector2i(x, y)
+			if is_cell_empty(gp):
+				var cell = placement_grid.get_node_or_null("Cell_%d_%d" % [gp.x, gp.y])
+				if cell:
+					cell.color = Color(0.2, 0.7, 0.9, 0.55)
+					_highlighted_cells.append(cell)
+
+
+## Clear all highlighted cells back to their default colours.
+func clear_cell_highlights() -> void:
+	for cell in _highlighted_cells:
+		if is_instance_valid(cell):
+			# Occupied cells get the brown tint, empties get the default green.
+			var gp = _cell_node_to_grid(cell)
+			cell.color = Color(0.5, 0.3, 0.2, 0.5) if not is_cell_empty(gp) else Color(0.2, 0.3, 0.2, 0.3)
+	_highlighted_cells.clear()
+
+
+## Convert a Cell_x_y node back to its grid coordinate.
+func _cell_node_to_grid(cell: Node) -> Vector2i:
+	var parts = cell.name.split("_")
+	if parts.size() == 3:
+		return Vector2i(int(parts[1]), int(parts[2]))
+	return Vector2i(-1, -1)
+
+
+# ---- Shop-phase reposition ------------------------------------------------
+
+## Begin moving a placed statue during the shop phase (free, no charge).
+func begin_relocate_shop(statue: Node2D) -> void:
+	if relocating_statue:
+		cancel_relocate_shop()  # Cancel previous grab
+	
+	relocating_statue = statue
+	relocating_from = statue.grid_position
+	# Free the cell so other placement checks treat it as empty.
+	free_cell(relocating_from)
+	# Visually ghost the statue.
+	statue.is_relocating = true
+	var sprite = statue.get_node_or_null("Sprite")
+	if sprite:
+		sprite.modulate = Color(0.6, 0.8, 1.0, 0.6)
+	highlight_valid_cells()
+	print("[Relocate] Shop — picked up %s from %s" % [statue.statue_data.display_name if statue.statue_data else "?", str(relocating_from)])
+
+
+## Confirm placement of the statue at to_grid during the shop phase.
+## Returns true if successful, false if the cell was invalid.
+func confirm_relocate_shop(to_grid: Vector2i) -> bool:
+	if not relocating_statue:
+		return false
+	if not is_cell_empty(to_grid):
+		print("[Relocate] Shop — cell %s occupied, cancelling" % str(to_grid))
+		_finish_relocate(relocating_statue, relocating_from, false)
+		return false
+	
+	_finish_relocate(relocating_statue, to_grid, true)
+	return true
+
+
+## Cancel a shop-phase relocation and return the statue to its origin cell.
+func cancel_relocate_shop() -> void:
+	if not relocating_statue:
+		return
+	_finish_relocate(relocating_statue, relocating_from, false)
+
+
+# ---- In-combat reposition (charge-based) ----------------------------------
+
+## Begin moving a statue during combat.  Consumes one relocate charge.
+## Returns false if no charges remain or combat is not active.
+func begin_relocate_combat(statue: Node2D) -> bool:
+	if not GameManager.is_tangy_mvp_active():
+		return false
+	if GameManager.current_state != GameManager.GameState.COMBAT:
+		return false
+	if relocating_statue:
+		return false  # Already relocating another statue
+	if not GameManager.consume_relocate_charge():
+		print("[Relocate] Combat — no charges remaining")
+		return false
+	
+	begin_relocate_shop(statue)  # Reuse shop logic for the pick-up part
+	# Pause the statue's attack during relocation
+	if statue.has_method("set_paused"):
+		statue.set_paused(true)
+	print("[Relocate] Combat — charge consumed, charges left: %d" % GameManager.relocate_charges)
+	return true
+
+
+## Confirm combat relocation to to_grid.
+func confirm_relocate_combat(to_grid: Vector2i) -> bool:
+	if not relocating_statue:
+		return false
+	var statue = relocating_statue
+	var ok = confirm_relocate_shop(to_grid)
+	# Resume the statue regardless of success
+	if statue and is_instance_valid(statue) and statue.has_method("set_paused"):
+		statue.set_paused(false)
+	return ok
+
+
+## Cancel an in-combat relocation (refunds the charge).
+func cancel_relocate_combat() -> void:
+	if not relocating_statue:
+		return
+	var statue = relocating_statue
+	cancel_relocate_shop()
+	if statue and is_instance_valid(statue) and statue.has_method("set_paused"):
+		statue.set_paused(false)
+	# Refund the charge since the move was cancelled
+	GameManager.relocate_charges = min(GameManager.relocate_charges + 1, 1)
+
+
+# ---- Shared finish helper --------------------------------------------------
+
+func _finish_relocate(statue: Node2D, target_grid: Vector2i, moved: bool) -> void:
+	if not is_instance_valid(statue):
+		relocating_statue = null
+		clear_cell_highlights()
+		return
+	
+	# Update position and occupy the target cell
+	statue.grid_position = target_grid
+	statue.position = grid_to_world(target_grid)
+	occupy_cell(target_grid)
+	
+	# Restore sprite
+	statue.is_relocating = false
+	var sprite = statue.get_node_or_null("Sprite")
+	if sprite:
+		sprite.modulate = Color.WHITE
+	
+	# Pop-in animation
+	if moved:
+		var t = create_tween()
+		t.tween_property(statue, "scale", Vector2(1.15, 1.15), 0.08).set_ease(Tween.EASE_OUT)
+		t.tween_property(statue, "scale", Vector2.ONE, 0.12).set_ease(Tween.EASE_IN_OUT)
+		EffectsManager.create_shockwave(self, grid_to_world(target_grid), Color(0.4, 0.8, 1.0, 0.7), 50.0, 0.25)
+	
+	# Immediately re-evaluate passives at new position
+	if statue.has_method("evaluate_passive"):
+		statue.evaluate_passive()
+	
+	relocating_statue = null
+	clear_cell_highlights()
+	
+	print("[Relocate] %s → %s" % [statue.statue_data.display_name if statue.statue_data else "?", str(target_grid)])
+
+
 ## Enemy spawning (with optional elite modifier)
 func spawn_enemy(enemy_data: Resource, force_elite: int = -1) -> Node2D:
 	var enemy = enemy_scene.instantiate()
@@ -628,12 +792,34 @@ func _create_placeholder_texture(color: Color, size: int) -> ImageTexture:
 	return ImageTexture.create_from_image(image)
 
 
-## Input handling for placement
+## Input handling for placement AND repositioning
 func _input(event: InputEvent) -> void:
+	if not event is InputEventMouseButton or not event.pressed:
+		return
+	
+	# ---- Repositioning mode (MVP) ------------------------------------
+	if relocating_statue and GameManager.is_tangy_mvp_active():
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			var grid_pos = world_to_grid(get_global_mouse_position())
+			if GameManager.current_state == GameManager.GameState.SHOP:
+				confirm_relocate_shop(grid_pos)
+			else:
+				confirm_relocate_combat(grid_pos)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			if GameManager.current_state == GameManager.GameState.SHOP:
+				cancel_relocate_shop()
+			else:
+				cancel_relocate_combat()
+			get_viewport().set_input_as_handled()
+			return
+	
+	# ---- Normal shop placement ---------------------------------------
 	if GameManager.current_state != GameManager.GameState.SHOP:
 		return
 	
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if event.button_index == MOUSE_BUTTON_LEFT:
 		var grid_pos = world_to_grid(get_global_mouse_position())
 		if is_cell_empty(grid_pos):
 			# This will be handled by shop UI when selecting a statue to place

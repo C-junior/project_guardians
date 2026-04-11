@@ -11,6 +11,7 @@ signal game_state_changed(new_state: GameState)
 signal statue_placed(statue: Node)
 signal enemy_killed(enemy: Node, gold_reward: int)
 signal inventory_changed()
+signal relocate_charges_changed(current: int, per_wave: int)
 
 # Enums
 enum GameState { MENU, SETUP, COMBAT, SHOP, PAUSED, GAME_OVER }
@@ -84,6 +85,13 @@ var player_inventory: Dictionary = {
 # Speed Control
 var game_speed: float = 1.0
 
+# Tangy MVP Relocate State
+const TANGY_MVP_RELOCATE_CHARGES_PER_WAVE: int = 1
+var relocate_charges: int = 0:
+	set(value):
+		relocate_charges = max(0, value)
+		relocate_charges_changed.emit(relocate_charges, get_relocate_charges_per_wave())
+
 # Meta-Progression (persisted)
 var unlocked_statues: Array = ["sentinel", "arcane_weaver", "huntress"]
 var unlocked_artifacts: Array = []
@@ -139,6 +147,29 @@ func _ready() -> void:
 	print("[GameManager] Initialized")
 
 
+func is_tangy_mvp_active() -> bool:
+	return current_map != null and current_map.get("tangy_mvp_enabled")
+
+
+func get_relocate_charges_per_wave() -> int:
+	return TANGY_MVP_RELOCATE_CHARGES_PER_WAVE if is_tangy_mvp_active() else 0
+
+
+func reset_relocate_charges_for_wave() -> void:
+	relocate_charges = get_relocate_charges_per_wave()
+
+
+func can_use_relocate() -> bool:
+	return relocate_charges > 0
+
+
+func consume_relocate_charge() -> bool:
+	if not can_use_relocate():
+		return false
+	relocate_charges -= 1
+	return true
+
+
 ## Start a new run
 func start_new_run() -> void:
 	gold = 200 + permanent_gold_bonus
@@ -155,6 +186,8 @@ func start_new_run() -> void:
 	# Load default map if none selected
 	if not current_map:
 		set_map(DEFAULT_MAP_PATH)
+
+	reset_relocate_charges_for_wave()
 	
 	current_state = GameState.SETUP  # Go to setup phase first
 	
@@ -195,6 +228,7 @@ func end_wave(victory: bool) -> void:
 ## Start next combat wave
 func start_next_wave() -> void:
 	current_wave += 1
+	reset_relocate_charges_for_wave()
 	current_state = GameState.COMBAT
 	active_consumables.clear()  # Consumables only last one wave
 	print("[GameManager] Starting Wave %d" % current_wave)

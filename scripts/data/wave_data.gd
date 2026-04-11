@@ -47,6 +47,14 @@ func get_spawn_sequence() -> Array[Dictionary]:
 static func generate_wave(wave_num: int) -> WaveData:
 	var wave = WaveData.new()
 	wave.wave_number = wave_num
+	
+	# --- Tangy MVP uses a short 8-wave loop; boss is always wave 8 ---
+	var is_tangy = GameManager and GameManager.is_tangy_mvp_active()
+	if is_tangy:
+		wave.is_boss_wave = (wave_num == 8)
+		_fill_tangy_mvp_wave(wave, wave_num)
+		return wave
+	
 	wave.is_boss_wave = (wave_num % 5 == 0)
 	
 	# Base enemy count scales more gradually
@@ -167,6 +175,40 @@ static func generate_wave(wave_num: int) -> WaveData:
 			wave.spawn_groups.append({"enemy_id": boss_id, "count": 1, "delay": 2.0})
 	
 	return wave
+
+
+## Tangy MVP: hand-crafted 8-wave progression
+static func _fill_tangy_mvp_wave(wave: WaveData, n: int) -> void:
+	match n:
+		1:
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 5, "delay": 0.0})
+		2:
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 7, "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 3, "delay": 0.5})
+		3:
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 6, "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "orc",    "count": 2, "delay": 1.0})
+		4:
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 5, "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "orc",    "count": 4, "delay": 0.8})
+		5:
+			wave.spawn_groups.append({"enemy_id": "orc",    "count": 5, "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 4, "delay": 0.5})
+			wave.spawn_groups.append({"enemy_id": "slime",  "count": 2, "delay": 1.0})
+		6:
+			wave.spawn_groups.append({"enemy_id": "orc",    "count": 6, "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "slime",  "count": 3, "delay": 0.5})
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 5, "delay": 0.5})
+		7:
+			# Pre-boss pressure wave: many fast goblins + tough orcs
+			wave.spawn_groups.append({"enemy_id": "goblin", "count": 8, "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "orc",    "count": 6, "delay": 0.4})
+			wave.spawn_groups.append({"enemy_id": "slime",  "count": 3, "delay": 0.6})
+		8:
+			# BOSS WAVE — Goblin King + escort
+			wave.spawn_groups.append({"enemy_id": "goblin",       "count": 6,  "delay": 0.0})
+			wave.spawn_groups.append({"enemy_id": "orc",          "count": 4,  "delay": 0.5})
+			wave.spawn_groups.append({"enemy_id": "goblin_boss",  "count": 1,  "delay": 3.0})
 
 
 ## Get readable preview of wave composition

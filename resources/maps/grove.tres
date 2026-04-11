@@ -21,3 +21,4 @@ boss_wave_20 = "ancient_dragon"
 boss_wave_25 = ""
 background_color = Color(0.15, 0.2, 0.15, 1)
 path_color = Color(0.4, 0.35, 0.25, 1)
+tangy_mvp_enabled = true

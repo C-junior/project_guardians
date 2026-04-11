@@ -39,6 +39,19 @@ class_name StatueData
 @export var secondary_effect_color: Color = Color(0.8, 0.8, 0.8)  # Secondary effect color
 @export var has_aura: bool = false  # Show persistent aura
 
+@export_group("Tangy MVP")
+@export_enum("None", "Frontline", "Precision DPS", "Support", "Control Support", "Flexible DPS/Control") var tactical_role: int = 0
+@export var passive_id: String = ""
+@export var passive_name: String = ""
+@export_multiline var passive_description: String = ""
+@export var is_tangy_mvp_roster: bool = false
+## Numeric strength of this statue's passive (e.g. 0.20 = +20% for lone_hunt)
+@export var passive_bonus_value: float = 0.20
+## Radius (px) used by aura-type passives (sanctuary_aura)
+@export var aura_radius: float = 120.0
+## Aggro weight for enemy soft-targeting. Frontline=1.5, others=1.0. Guard Rune adds +0.3.
+@export var base_threat: float = 1.0
+
 
 ## Rarity stat multipliers: Common(1.0), Uncommon(1.15), Rare(1.3), Epic(1.5), Legendary(1.8)
 const RARITY_STAT_MULTIPLIERS = [1.0, 1.15, 1.30, 1.50, 1.80]
@@ -91,3 +104,19 @@ func get_sell_value(tier: int = 0) -> int:
 	var tier_multipliers = [1.0, 1.4, 1.8, 2.5]  # Same as evolution multipliers
 	var tier_mult = tier_multipliers[clamp(tier, 0, 3)]
 	return int(get_cost() * tier_mult * 0.5)
+
+
+func get_tactical_role_name() -> String:
+	var role_names = [
+		"None",
+		"Frontline",
+		"Precision DPS",
+		"Support",
+		"Control Support",
+		"Flexible DPS/Control"
+	]
+	return role_names[clamp(tactical_role, 0, role_names.size() - 1)]
+
+
+func has_tactical_passive() -> bool:
+	return passive_id != ""

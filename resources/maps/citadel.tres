@@ -24,3 +24,4 @@ path_color = Color(0.5, 0.6, 0.7, 1)
 path_count = 2
 path_selection_mode = 0
 arena_scene_path = "res://scenes/combat/arena_citadel.tscn"
+tangy_mvp_enabled = false

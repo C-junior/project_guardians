@@ -35,6 +35,9 @@ class_name MapData
 @export var path_selection_mode: int = 0  ## 0=random, 1=alternating, 2=wave-based
 @export var arena_scene_path: String = ""  ## Optional custom arena scene for this map
 
+@export_group("Tangy MVP")
+@export var tangy_mvp_enabled: bool = false
+
 
 ## Get boss ID for a given wave
 func get_boss_for_wave(wave: int) -> String:
@@ -64,3 +67,7 @@ func can_spawn_shield(wave: int) -> bool:
 ## Check if elite modifiers should apply
 func can_spawn_elite(wave: int) -> bool:
 	return wave >= elite_start_wave
+
+
+func is_tangy_mvp_map() -> bool:
+	return tangy_mvp_enabled

@@ -174,14 +174,19 @@ func refresh_global_modifiers() -> void:
 # RUNA (ITEM) SLOTS — multi-slot equipment system
 # ===========================================================================
 
-## Returns how many item slots this statue has based on its evolution tier.
+## Returns how many item slots this statue has (MVP: always 2).
 func get_max_slots() -> int:
-	return evolution_tier + 1  # Tier0=1, Tier1=2, Tier2=3, Tier3=4
+	return 2  # MVP: fixed 2 slots per statue
 
 
 ## Returns true if there is at least one empty slot available.
 func has_empty_slot() -> bool:
 	return equipped_items.size() < get_max_slots()
+
+
+## Alias used by GameManager.apply_equipment_to_statue()
+func can_equip(_item: Resource = null) -> bool:
+	return has_empty_slot()
 
 
 ## Equip a runa into the next available slot.

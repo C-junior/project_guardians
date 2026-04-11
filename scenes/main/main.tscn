@@ -3,10 +3,10 @@
 [ext_resource type="Script" uid="uid://ijmr5wlpupyw" path="res://scripts/main.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://rena001" path="res://scenes/combat/arena.tscn" id="2_arena"]
 [ext_resource type="PackedScene" uid="uid://hud001" path="res://scenes/ui/hud.tscn" id="3_hud"]
-[ext_resource type="PackedScene" path="res://scenes/ui/shop_ui.tscn" id="4_shop"]
+[ext_resource type="PackedScene" path="res://scenes/ui/equipment_shop_ui.tscn" id="4_shop"]
 [ext_resource type="PackedScene" uid="uid://menu001" path="res://scenes/main/main_menu.tscn" id="5_menu"]
 [ext_resource type="PackedScene" path="res://scenes/ui/statue_selection_ui.tscn" id="6_statue_selection"]
-[ext_resource type="PackedScene" path="res://scenes/ui/inventory_ui.tscn" id="7_inventory"]
+[ext_resource type="PackedScene" path="res://scenes/ui/statue_inventory_ui.tscn" id="7_inventory"]
 [ext_resource type="PackedScene" uid="uid://bn4xo8cq7hx3r" path="res://scenes/ui/ascension_ui.tscn" id="8_ascension"]
 [ext_resource type="PackedScene" uid="uid://dvg0rj0582441" path="res://scenes/ui/blessing_selection_ui.tscn" id="9_b1x3f"]
 [ext_resource type="PackedScene" uid="uid://csanctum001" path="res://scenes/ui/meta_progression_ui.tscn" id="10_sanctum"]
@@ -23,13 +23,13 @@ visible = false
 visible = false
 follow_viewport_enabled = true
 
-[node name="ShopUI" parent="." instance=ExtResource("4_shop")]
+[node name="EquipmentShopUI" parent="." instance=ExtResource("4_shop")]
 visible = false
 
 [node name="StatueSelectionUI" parent="." instance=ExtResource("6_statue_selection")]
 visible = false
 
-[node name="InventoryUI" parent="." instance=ExtResource("7_inventory")]
+[node name="StatueInventoryUI" parent="." instance=ExtResource("7_inventory")]
 visible = false
 
 [node name="AscensionUI" parent="." instance=ExtResource("8_ascension")]

@@ -148,7 +148,7 @@ func _ready() -> void:
 
 
 func is_tangy_mvp_active() -> bool:
-	return current_map != null and current_map.get("tangy_mvp_enabled")
+	return current_map != null and ("tangy_mvp_enabled" in current_map and current_map.get("tangy_mvp_enabled"))
 
 
 func get_relocate_charges_per_wave() -> int:
@@ -203,7 +203,8 @@ func _reset_inventory() -> void:
 		"statues": [],
 		"artifacts": [],
 		"consumables": [],
-		"upgrades": []
+		"upgrades": [],
+		"equipment": []  # MVP: Runas/equipment vinculadas a estátuas
 	}
 	pending_upgrade = null
 	inventory_changed.emit()
@@ -267,7 +268,7 @@ func get_gold_multiplier() -> float:
 ## Get active cooldown recovery boost from consumables (Arcane Surge)
 func get_active_cooldown_boost() -> float:
 	for consumable in active_consumables:
-		var boost = consumable.get("cooldown_recovery_boost")
+		var boost = consumable.get("cooldown_recovery_boost") if "cooldown_recovery_boost" in consumable else 0.0
 		if boost and boost > 0:
 			return boost
 	return 0.0
@@ -276,7 +277,7 @@ func get_active_cooldown_boost() -> float:
 ## Get active bonus gold chance from consumables (Lucky Coin)
 func get_active_bonus_gold_chance() -> float:
 	for consumable in active_consumables:
-		var chance = consumable.get("bonus_gold_chance")
+		var chance = consumable.get("bonus_gold_chance") if "bonus_gold_chance" in consumable else 0.0
 		if chance and chance > 0:
 			return chance
 	return 0.0
@@ -285,7 +286,7 @@ func get_active_bonus_gold_chance() -> float:
 ## Check if we should preview next wave (Scout's Map)
 func has_wave_preview_active() -> bool:
 	for consumable in active_consumables:
-		if consumable.get("preview_next_wave"):
+		if "preview_next_wave" in consumable and consumable.get("preview_next_wave"):
 			return true
 	return false
 
@@ -527,16 +528,16 @@ func add_to_inventory(item: Resource, item_type: String, tier: int = 0) -> void:
 		return
 	
 	var inventory_list = player_inventory.get(item_type, [])
-	
+
 	# Check if item already exists at same tier (for stackable items like statues)
 	for entry in inventory_list:
-		var entry_id = entry["data"].get("id") if entry["data"] else ""
-		var item_id = item.get("id") if item else ""
+		var entry_id = entry["data"].get("id") if entry["data"] and "id" in entry["data"] else ""
+		var item_id = item.get("id") if item and "id" in item else ""
 		var entry_tier = entry.get("tier", 0)
 		if (entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id)) and entry_tier == tier:
 			entry["count"] += 1
 			inventory_changed.emit()
-			var name_str = item.get("display_name") if item.get("display_name") else str(item)
+			var name_str = item.get("display_name") if item and "display_name" in item else str(item)
 			var tier_name = EvolutionManager.get_tier_name(tier) if tier > 0 else "Base"
 			print("[GameManager] Added %s (%s) to inventory (count: %d)" % [name_str, tier_name, entry["count"]])
 			return
@@ -545,7 +546,7 @@ func add_to_inventory(item: Resource, item_type: String, tier: int = 0) -> void:
 	inventory_list.append({"data": item, "count": 1, "tier": tier})
 	player_inventory[item_type] = inventory_list
 	inventory_changed.emit()
-	var name_str = item.get("display_name") if item.get("display_name") else str(item)
+	var name_str = item.get("display_name") if item and "display_name" in item else str(item)
 	var tier_name = EvolutionManager.get_tier_name(tier) if tier > 0 else "Base"
 	print("[GameManager] Added new %s (%s) to inventory" % [name_str, tier_name])
 
@@ -555,11 +556,11 @@ func remove_from_inventory(item: Resource, item_type: String, tier: int = -1) ->
 		return false
 	
 	var inventory_list = player_inventory.get(item_type, [])
-	var item_id = item.get("id") if item else ""
-	
+	var item_id = item.get("id") if item and "id" in item else ""
+
 	for i in range(inventory_list.size()):
 		var entry = inventory_list[i]
-		var entry_id = entry["data"].get("id") if entry["data"] else ""
+		var entry_id = entry["data"].get("id") if entry["data"] and "id" in entry["data"] else ""
 		var entry_tier = entry.get("tier", 0)
 		# Match by ID and optionally by tier (-1 = any tier)
 		if entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id):
@@ -575,9 +576,9 @@ func remove_from_inventory(item: Resource, item_type: String, tier: int = -1) ->
 
 func has_in_inventory(item: Resource, item_type: String) -> bool:
 	var inventory_list = player_inventory.get(item_type, [])
-	var item_id = item.get("id") if item else ""
+	var item_id = item.get("id") if item and "id" in item else ""
 	for entry in inventory_list:
-		var entry_id = entry["data"].get("id") if entry["data"] else ""
+		var entry_id = entry["data"].get("id") if entry["data"] and "id" in entry["data"] else ""
 		if entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id):
 			return entry["count"] > 0
 	return false
@@ -589,22 +590,89 @@ func get_inventory_items(item_type: String) -> Array:
 
 func get_inventory_count(item: Resource, item_type: String) -> int:
 	var inventory_list = player_inventory.get(item_type, [])
-	var item_id = item.get("id") if item else ""
+	var item_id = item.get("id") if item and "id" in item else ""
 	for entry in inventory_list:
-		var entry_id = entry["data"].get("id") if entry["data"] else ""
+		var entry_id = entry["data"].get("id") if entry["data"] and "id" in entry["data"] else ""
 		if entry["data"] == item or (entry_id != "" and item_id != "" and entry_id == item_id):
 			return entry["count"]
 	return 0
+
+
+## Add statue to inventory (from shop purchase)
+func add_statue_to_inventory(statue_data: Resource, rarity: int = 0) -> void:
+	if not statue_data:
+		return
+	
+	# Store rarity with the statue
+	statue_data.set_meta("shop_rarity", rarity)
+	
+	add_to_inventory(statue_data, "statues", 0)  # Tier 0 (base)
+	print("[GameManager] Added statue %s (Rarity: %d) to inventory" % [statue_data.display_name, rarity])
+
+
+## Apply equipment to a placed statue
+func apply_equipment_to_statue(statue_node: Node, equipment: EquipmentData) -> bool:
+	if not statue_node or not equipment:
+		return false
+	
+	# Check if statue has equipment support
+	if not statue_node.has_method("can_equip"):
+		push_warning("[GameManager] Statue doesn't support equipment")
+		return false
+	
+	# Check if statue can equip (slot availability)
+	if not statue_node.can_equip(equipment):
+		push_warning("[GameManager] Statue has no available equipment slots")
+		return false
+	
+	# Remove equipment from inventory first
+	if not remove_from_inventory(equipment, "equipment"):
+		push_warning("[GameManager] Equipment not found in inventory")
+		return false
+	
+	# Apply equipment to statue
+	if statue_node.has_method("equip_item"):
+		statue_node.equip_item(equipment)
+		print("[GameManager] Applied %s to %s" % [equipment.display_name, statue_node.statue_data.display_name])
+		return true
+	
+	return false
+
+
+## Get max equipment slots for a statue (MVP: always 2)
+func get_max_equipment_slots_for_tier(_tier: int) -> int:
+	return 2  # MVP: fixed 2 slots per statue
+
+
+## Unequip equipment from a placed statue and return it to inventory
+func unequip_from_statue(statue_node: Node, slot_index: int) -> bool:
+	if not statue_node or not statue_node.has_method("unequip_item_at"):
+		push_warning("[GameManager] Statue doesn't support unequip")
+		return false
+	
+	var removed_item = statue_node.unequip_item_at(slot_index)
+	if removed_item == null:
+		push_warning("[GameManager] No item in slot %d" % slot_index)
+		return false
+	
+	# Return the removed item to inventory
+	add_to_inventory(removed_item, "equipment")
+	print("[GameManager] Unequipped %s from %s (slot %d) → returned to inventory" % [
+		removed_item.display_name,
+		statue_node.statue_data.display_name if statue_node.statue_data else "?",
+		slot_index
+	])
+	return true
 
 
 ## Sell a statue from inventory or placed, returns gold earned
 func sell_statue(statue_data: Resource, tier: int = 0) -> int:
 	if not statue_data or not statue_data.has_method("get_sell_value"):
 		return 0
-	
+
 	var sell_value = statue_data.get_sell_value(tier)
 	gold += sell_value
-	
+
 	print("[GameManager] Sold %s (Tier %d) for %d gold" % [statue_data.display_name, tier, sell_value])
 	return sell_value
 
@@ -653,7 +721,7 @@ func track_damage_dealt(amount: float) -> void:
 
 
 func track_statue_placed(statue_data: Resource) -> void:
-	var statue_id = statue_data.get("id") if statue_data else "unknown"
+	var statue_id = statue_data.get("id") if statue_data and "id" in statue_data else "unknown"
 	if not run_stats["statue_usage"].has(statue_id):
 		run_stats["statue_usage"][statue_id] = 0
 	run_stats["statue_usage"][statue_id] += 1

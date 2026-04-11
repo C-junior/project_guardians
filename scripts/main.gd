@@ -7,10 +7,10 @@ extends Node2D
 @onready var main_menu: CanvasLayer = $MainMenu
 @onready var arena: Node2D = $Arena
 @onready var hud: CanvasLayer = $HUD
-@onready var shop_ui: CanvasLayer = $ShopUI
+@onready var equipment_shop_ui: CanvasLayer = $EquipmentShopUI
 @onready var game_over_screen: CanvasLayer = $GameOverScreen
 @onready var statue_selection_ui: CanvasLayer = $StatueSelectionUI
-@onready var inventory_ui: CanvasLayer = $InventoryUI
+@onready var statue_inventory_ui: CanvasLayer = $StatueInventoryUI
 @onready var ascension_ui: CanvasLayer = $AscensionUI
 @onready var blessing_selection_ui: CanvasLayer = $BlessingSelectionUI
 
@@ -40,11 +40,12 @@ func _ready() -> void:
 		push_error("[Main] Arena not found!")
 	
 	# Connect shop signals (with null check)
-	if shop_ui:
-		shop_ui.item_purchased.connect(_on_item_purchased)
-		shop_ui.shop_closed.connect(_on_shop_closed)
+	if equipment_shop_ui:
+		equipment_shop_ui.equipment_purchased.connect(_on_equipment_purchased)
+		equipment_shop_ui.statue_purchased.connect(_on_statue_purchased)
+		equipment_shop_ui.shop_closed.connect(_on_shop_closed)
 	else:
-		push_error("[Main] ShopUI not found!")
+		push_error("[Main] EquipmentShopUI not found!")
 	
 	# Connect statue selection UI signals
 	if statue_selection_ui:
@@ -54,18 +55,16 @@ func _ready() -> void:
 		push_warning("[Main] StatueSelectionUI not found - will use fallback flow")
 	
 	# Connect inventory UI signals
-	if inventory_ui:
-		inventory_ui.place_statue_requested.connect(_on_inventory_place_statue)
-		if inventory_ui.has_signal("ascension_requested"):
-			inventory_ui.ascension_requested.connect(_on_ascension_requested)
-		if inventory_ui.has_signal("drag_started"):
-			inventory_ui.drag_started.connect(_on_inventory_drag_started)
-		if inventory_ui.has_signal("drag_ended"):
-			inventory_ui.drag_ended.connect(_on_inventory_drag_ended)
-		if inventory_ui.has_signal("drop_requested"):
-			inventory_ui.drop_requested.connect(_on_inventory_drop_requested)
-		if inventory_ui.has_signal("apply_upgrade_requested"):
-			inventory_ui.apply_upgrade_requested.connect(_on_apply_upgrade_requested)
+	if statue_inventory_ui:
+		statue_inventory_ui.place_statue_requested.connect(_on_inventory_place_statue)
+		if statue_inventory_ui.has_signal("drag_started"):
+			statue_inventory_ui.drag_started.connect(_on_inventory_drag_started)
+		if statue_inventory_ui.has_signal("drag_ended"):
+			statue_inventory_ui.drag_ended.connect(_on_inventory_drag_ended)
+		if statue_inventory_ui.has_signal("drop_requested"):
+			statue_inventory_ui.drop_requested.connect(_on_inventory_drop_requested)
+		if statue_inventory_ui.has_signal("equipment_applied"):
+			statue_inventory_ui.equipment_applied.connect(_on_equipment_applied_to_statue)
 	
 	# Connect ascension UI signals
 	if ascension_ui:
@@ -123,14 +122,14 @@ func _show_main_menu() -> void:
 		arena.visible = false
 	if hud:
 		hud.visible = false
-	if shop_ui:
-		shop_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
 	if game_over_screen:
 		game_over_screen.visible = false
 	if statue_selection_ui:
 		statue_selection_ui.visible = false
-	if inventory_ui:
-		inventory_ui.visible = false
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false
 
 
 func _show_setup() -> void:
@@ -156,7 +155,7 @@ func _on_blessing_selected(blessing: Resource) -> void:
 	print("[Main] Blessing chosen: %s" % blessing.display_name)
 	
 	# Check if blessing provides a bonus starting statue
-	var starting_id = blessing.get("starting_statue_id")
+	var starting_id = blessing.get("starting_statue_id") if "starting_statue_id" in blessing else ""
 	if starting_id and starting_id != "":
 		# Blessing grants a bonus statue - add to inventory
 		var path = "res://resources/statues/%s.tres" % starting_id
@@ -182,8 +181,8 @@ func _show_combat() -> void:
 		arena.visible = true
 	if hud:
 		hud.visible = true
-	if shop_ui:
-		shop_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
 	if game_over_screen:
 		game_over_screen.visible = false
 	if statue_selection_ui:
@@ -191,11 +190,11 @@ func _show_combat() -> void:
 
 
 func _show_shop() -> void:
-	if shop_ui:
-		shop_ui.open_shop()
+	if equipment_shop_ui:
+		equipment_shop_ui.open_shop()
 	# Show inventory button/panel in shop
-	if inventory_ui:
-		inventory_ui.visible = true
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = true
 
 
 func _show_game_over() -> void:
@@ -236,8 +235,8 @@ func _on_starting_statue_selected(statue_data: Resource) -> void:
 		arena.visible = true
 	if hud:
 		hud.visible = true
-	if inventory_ui:
-		inventory_ui.visible = false  # Hidden until player clicks button
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false  # Hidden until player clicks button
 	
 	print("[Main] Arena ready - use Inventory button to place statues, then Start Wave")
 
@@ -246,16 +245,31 @@ func _on_statue_selection_back() -> void:
 	GameManager.current_state = GameManager.GameState.MENU
 
 
-func _on_item_purchased(item: Resource, item_type: String) -> void:
-	if item_type == "statue" and item:
-		# Add to inventory instead of immediate placement
-		GameManager.add_to_inventory(item, "statues")
-		print("[Main] Statue added to inventory: %s" % item.display_name)
-	elif item_type == "artifact" and item:
-		GameManager.add_to_inventory(item, "artifacts")
-		GameManager.add_artifact(item)
-	elif item_type == "consumable" and item:
-		GameManager.add_to_inventory(item, "consumables")
+
+
+
+
+## Called when equipment (rune) is purchased from shop
+func _on_equipment_purchased(equipment: EquipmentData) -> void:
+	print("[Main] Equipment purchased: %s" % equipment.display_name)
+	# Equipment already added to inventory by shop
+
+
+## Called when statue is purchased from shop
+func _on_statue_purchased(statue_data: Resource, tier: int) -> void:
+	print("[Main] Statue purchased: %s" % statue_data.display_name)
+	# Statue already added to inventory by shop
+
+
+## Called when equipment is applied to a statue from inventory
+func _on_equipment_applied_to_statue(statue_data: Resource, equipment: Resource) -> void:
+	print("[Main] Equipment '%s' applied to statue '%s'" % [
+		equipment.display_name if equipment else "?",
+		statue_data.display_name if statue_data else "?"
+	])
+	# Refresh HUD to show updated statue status
+	if hud and hud.has_method("refresh"):
+		hud.refresh()
 
 
 ## Called when player wants to place a statue from inventory
@@ -266,18 +280,18 @@ func _on_inventory_place_statue(statue_data: Resource, tier: int = 0) -> void:
 		is_initial_placement = false
 		
 		# Hide inventory during placement
-		if inventory_ui:
-			inventory_ui.visible = false
-		if shop_ui:
-			shop_ui.visible = false
+		if statue_inventory_ui:
+			statue_inventory_ui.visible = false
+		if equipment_shop_ui:
+			equipment_shop_ui.visible = false
 		
 		_enter_placement_mode()
 
 
 func _on_shop_closed() -> void:
 	# Hide inventory when shop closes
-	if inventory_ui:
-		inventory_ui.visible = false
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false
 	
 	# If we're in COMBAT state (wave was started from shop), start spawning enemies
 	if GameManager.current_state == GameManager.GameState.COMBAT:
@@ -335,9 +349,9 @@ func _input(event: InputEvent) -> void:
 					_exit_placement_mode()
 					pending_statue_to_place = null
 					pending_statue_tier = 0
-					if inventory_ui:
-						inventory_ui.visible = true
-						inventory_ui.refresh()
+					if statue_inventory_ui:
+						statue_inventory_ui.visible = true
+						statue_inventory_ui.refresh()
 				
 				# DON'T auto-open shop after placing - user can click shop button if they want to reopen
 				# This prevents unwanted shop popups during statue placement
@@ -353,10 +367,10 @@ func _input(event: InputEvent) -> void:
 				if statue_selection_ui:
 					statue_selection_ui.open()
 			else:
-				if shop_ui:
-					shop_ui.visible = true
-				if inventory_ui:
-					inventory_ui.visible = true
+				if equipment_shop_ui:
+					equipment_shop_ui.visible = true
+				if statue_inventory_ui:
+					statue_inventory_ui.visible = true
 	
 	# Handle upgrade application to placed statues
 	if GameManager.pending_upgrade and event is InputEventMouseButton:
@@ -371,19 +385,19 @@ func _input(event: InputEvent) -> void:
 				GameManager.pending_upgrade = null
 				print("[Main] Upgrade applied to %s!" % clicked_statue.statue_data.display_name)
 				# Return to inventory/shop
-				if inventory_ui:
-					inventory_ui.visible = true
-					inventory_ui.refresh()
-				if shop_ui:
-					shop_ui.visible = true
+				if statue_inventory_ui:
+					statue_inventory_ui.visible = true
+					statue_inventory_ui.refresh()
+				if equipment_shop_ui:
+					equipment_shop_ui.visible = true
 		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			# Cancel upgrade - keep in inventory
 			GameManager.pending_upgrade = null
 			print("[Main] Upgrade cancelled - returned to inventory")
 			# Show inventory again
-			if inventory_ui:
-				inventory_ui.visible = true
-				inventory_ui.refresh()
+			if statue_inventory_ui:
+				statue_inventory_ui.visible = true
+				statue_inventory_ui.refresh()
 	
 	# Handle sell mode for placed statues (right-click on statue in shop phase)
 	if sell_mode and event is InputEventMouseButton:
@@ -395,8 +409,8 @@ func _input(event: InputEvent) -> void:
 			# Cancel sell mode
 			sell_mode = false
 			print("[Main] Sell mode cancelled")
-			if inventory_ui:
-				inventory_ui.visible = true
+			if statue_inventory_ui:
+				statue_inventory_ui.visible = true
 	
 	# Allow right-click selling placed statues during SHOP phase (quick sell)
 	if GameManager.current_state == GameManager.GameState.SHOP and not sell_mode and not GameManager.pending_upgrade and not pending_statue_to_place:
@@ -423,7 +437,7 @@ func _sell_placed_statue(statue: Node) -> void:
 	
 	# Get statue data and tier
 	var statue_data = statue.statue_data
-	var tier = statue.current_tier if statue.get("current_tier") != null else 0
+	var tier = statue.get("current_tier") if "current_tier" in statue else 0
 	
 	if not statue_data:
 		print("[Main] Cannot sell - statue has no data")
@@ -451,9 +465,9 @@ func _sell_placed_statue(statue: Node) -> void:
 	print("[Main] Sold placed %s (Tier %d) for %d gold!" % [statue_data.display_name, tier, sell_value])
 	
 	# Show inventory again
-	if inventory_ui:
-		inventory_ui.visible = true
-		inventory_ui.refresh()
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = true
+		statue_inventory_ui.refresh()
 
 
 ## JUICE: Field sell gold celebration effect
@@ -548,7 +562,7 @@ func _load_arena_for_map() -> void:
 		return
 	
 	# Check if map has a custom arena scene
-	var arena_path = GameManager.current_map.get("arena_scene_path")
+	var arena_path = GameManager.current_map.get("arena_scene_path") if "arena_scene_path" in GameManager.current_map else ""
 	if arena_path and arena_path != "" and ResourceLoader.exists(arena_path):
 		print("[Main] Loading custom arena for map: %s" % arena_path)
 		
@@ -595,7 +609,7 @@ func _use_fallback_starting_statue() -> void:
 func _get_random_starting_statue() -> Resource:
 	# Check blessing for specific starting statue
 	if GameManager.current_blessing:
-		var starting_id = GameManager.current_blessing.get("starting_statue_id")
+		var starting_id = GameManager.current_blessing.get("starting_statue_id") if "starting_statue_id" in GameManager.current_blessing else ""
 		if starting_id and starting_id != "":
 			var path = "res://resources/statues/%s.tres" % starting_id
 			if ResourceLoader.exists(path):
@@ -623,16 +637,16 @@ func start_new_game() -> void:
 
 ## HUD Button Handlers
 func _on_hud_inventory_pressed() -> void:
-	if inventory_ui:
-		inventory_ui.visible = not inventory_ui.visible
-		if inventory_ui.visible:
-			inventory_ui.refresh()
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = not statue_inventory_ui.visible
+		if statue_inventory_ui.visible:
+			statue_inventory_ui.refresh()
 
 
 func _on_hud_shop_pressed() -> void:
 	# Open shop UI
-	if shop_ui:
-		shop_ui.open_shop()
+	if equipment_shop_ui:
+		equipment_shop_ui.open_shop()
 
 
 func _on_hud_start_wave_pressed() -> void:
@@ -642,10 +656,10 @@ func _on_hud_start_wave_pressed() -> void:
 		return
 	
 	# Hide inventory and shop if open
-	if inventory_ui:
-		inventory_ui.visible = false
-	if shop_ui:
-		shop_ui.visible = false
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
 	
 	# Hide the path when combat starts (optional)
 	# _set_path_visible(false)
@@ -712,10 +726,10 @@ func _set_paths_visible(visible: bool) -> void:
 func _on_ascension_requested() -> void:
 	if ascension_ui:
 		# Hide inventory and shop while ascension is open
-		if inventory_ui:
-			inventory_ui.visible = false
-		if shop_ui:
-			shop_ui.visible = false
+		if statue_inventory_ui:
+			statue_inventory_ui.visible = false
+		if equipment_shop_ui:
+			equipment_shop_ui.visible = false
 		ascension_ui.open()
 
 
@@ -723,21 +737,21 @@ func _on_ascension_completed(_evolved_statue: Resource, _tier: int) -> void:
 	print("[Main] Ascension completed!")
 	# Show inventory again after ascension
 	if GameManager.current_state == GameManager.GameState.SHOP:
-		if inventory_ui:
-			inventory_ui.visible = true
-			inventory_ui.refresh()
-		if shop_ui:
-			shop_ui.visible = true
+		if statue_inventory_ui:
+			statue_inventory_ui.visible = true
+			statue_inventory_ui.refresh()
+		if equipment_shop_ui:
+			equipment_shop_ui.visible = true
 
 
 func _on_ascension_cancelled() -> void:
 	print("[Main] Ascension cancelled")
 	# Show inventory again
 	if GameManager.current_state == GameManager.GameState.SHOP:
-		if inventory_ui:
-			inventory_ui.visible = true
-		if shop_ui:
-			shop_ui.visible = true
+		if statue_inventory_ui:
+			statue_inventory_ui.visible = true
+		if equipment_shop_ui:
+			equipment_shop_ui.visible = true
 
 
 ## Drag-and-drop handlers for inventory statues
@@ -752,8 +766,8 @@ func _on_inventory_drag_started(statue_data: Resource, tier: int) -> void:
 	drag_drop_tier = tier
 	
 	# Hide shop during drag
-	if shop_ui:
-		shop_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
 	
 	# Enable placement grid highlight
 	_enter_placement_mode()
@@ -770,8 +784,8 @@ func _on_inventory_drag_ended() -> void:
 
 func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: Vector2) -> void:
 	if not arena:
-		if inventory_ui:
-			inventory_ui.cancel_drag()
+		if statue_inventory_ui:
+			statue_inventory_ui.cancel_drag()
 		return
 	
 	# Convert screen position to world position (accounting for camera)
@@ -793,8 +807,8 @@ func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: V
 			GameManager.remove_from_inventory(statue_data, "statues", tier)
 			
 			# Complete the drag
-			if inventory_ui:
-				inventory_ui.complete_drag()
+			if statue_inventory_ui:
+				statue_inventory_ui.complete_drag()
 			
 			is_drag_dropping = false
 			drag_drop_statue = null
@@ -805,10 +819,10 @@ func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: V
 		else:
 			# Placement failed (limit reached) - return to inventory
 			print("[Main] Placement failed - statue limit reached. Returning to inventory.")
-			if inventory_ui:
-				inventory_ui.cancel_drag()
-				inventory_ui.visible = true
-				inventory_ui.refresh()
+			if statue_inventory_ui:
+				statue_inventory_ui.cancel_drag()
+				statue_inventory_ui.visible = true
+				statue_inventory_ui.refresh()
 			
 			is_drag_dropping = false
 			drag_drop_statue = null
@@ -816,10 +830,10 @@ func _on_inventory_drop_requested(statue_data: Resource, tier: int, mouse_pos: V
 			_exit_placement_mode()
 	else:
 		# Invalid placement - cancel and return to inventory
-		if inventory_ui:
-			inventory_ui.cancel_drag()
-			inventory_ui.visible = true
-			inventory_ui.refresh()
+		if statue_inventory_ui:
+			statue_inventory_ui.cancel_drag()
+			statue_inventory_ui.visible = true
+			statue_inventory_ui.refresh()
 		
 		is_drag_dropping = false
 		drag_drop_statue = null
@@ -838,7 +852,7 @@ func _on_apply_upgrade_requested(upgrade_data: Resource) -> void:
 	GameManager.pending_upgrade = upgrade_data
 	
 	# Hide shop during upgrade selection
-	if shop_ui:
-		shop_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
 	
 	print("[Main] Apply upgrade mode active: %s - Click a statue to apply, right-click to cancel" % upgrade_data.display_name)

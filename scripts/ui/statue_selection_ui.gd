@@ -14,7 +14,7 @@ var selected_statue: Resource = null
 var statue_cards: Array[Control] = []
 
 # Preload the shop item card scene for displaying statues
-const STATUE_CARD_SCENE = preload("res://scenes/ui/shop_item_card.tscn")
+const STATUE_CARD_SCENE = preload("res://scenes/ui/equipment_shop_card.tscn")
 
 
 func _ready() -> void:

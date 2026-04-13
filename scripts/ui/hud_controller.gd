@@ -5,6 +5,7 @@ extends CanvasLayer
 signal inventory_button_pressed()
 signal shop_button_pressed()
 signal start_wave_button_pressed()
+signal relocate_button_pressed()
 
 # References
 @onready var wave_label: Label = $TopBar/WaveLabel
@@ -21,6 +22,7 @@ signal start_wave_button_pressed()
 @onready var inventory_button: Button = $ActionButtons/InventoryButton
 @onready var shop_button: Button = $ActionButtons/ShopButton
 @onready var start_wave_button: Button = $ActionButtons/StartWaveButton
+@onready var relocate_button: Button = $ActionButtons/RelocateButton
 
 # Statue count display - dynamically created if not in scene
 var statue_count_label: Label = null
@@ -50,6 +52,7 @@ func _ready() -> void:
 	GameManager.wave_changed.connect(_on_wave_changed)
 	GameManager.statue_placed.connect(_on_statue_placed)
 	GameManager.game_state_changed.connect(_on_game_state_changed)
+	GameManager.relocate_charges_changed.connect(_on_relocate_charges_changed)
 	
 	# Speed control buttons
 	speed_1x.pressed.connect(func(): _set_speed(1.0))
@@ -61,6 +64,8 @@ func _ready() -> void:
 	inventory_button.pressed.connect(_on_inventory_pressed)
 	shop_button.pressed.connect(_on_shop_pressed)
 	start_wave_button.pressed.connect(_on_start_wave_pressed)
+	if relocate_button:
+		relocate_button.pressed.connect(_on_relocate_pressed)
 	
 	# Initial update
 	_on_gold_changed(GameManager.gold)
@@ -97,6 +102,16 @@ func _on_start_wave_pressed() -> void:
 		start_wave_button_pressed.emit()
 
 
+func _on_relocate_pressed() -> void:
+	if GameManager.current_state != GameManager.GameState.COMBAT:
+		return
+	if not GameManager.is_tangy_mvp_active():
+		return
+	if not GameManager.can_use_relocate():
+		return
+	relocate_button_pressed.emit()
+
+
 func _on_game_state_changed(_new_state: GameManager.GameState) -> void:
 	_update_action_buttons_visibility()
 	
@@ -110,10 +125,33 @@ func _update_action_buttons_visibility() -> void:
 	# Shop button only visible during SHOP phase
 	if shop_button:
 		shop_button.visible = GameManager.current_state == GameManager.GameState.SHOP
-	
+
 	# Start wave button visible during SHOP or when setting up (not during combat)
 	if start_wave_button:
 		start_wave_button.visible = GameManager.current_state != GameManager.GameState.COMBAT
+
+	# Relocate button only visible during COMBAT when Tangy MVP is active
+	_update_relocate_button()
+
+
+func _update_relocate_button() -> void:
+	if not relocate_button:
+		return
+	if GameManager.is_tangy_mvp_active() and GameManager.current_state == GameManager.GameState.COMBAT:
+		relocate_button.visible = true
+		relocate_button.text = "⚡ Relocate: %d/%d" % [GameManager.relocate_charges, GameManager.get_relocate_charges_per_wave()]
+		relocate_button.disabled = not GameManager.can_use_relocate()
+		# Highlight when charges available
+		if GameManager.can_use_relocate():
+			relocate_button.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
+		else:
+			relocate_button.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+	else:
+		relocate_button.visible = false
+
+
+func _on_relocate_charges_changed(_current: int, _per_wave: int) -> void:
+	_update_relocate_button()
 
 
 func _on_gold_changed(new_gold: int) -> void:
@@ -461,9 +499,12 @@ func _process(delta: float) -> void:
 				button.queue_free()
 				continue
 			_update_ability_button(button, statue)
-	
+
 	# Update danger effects based on crystal health
 	_update_danger_effects(delta)
+
+	# Update relocate button state (charges can change during combat)
+	_update_relocate_button()
 
 
 ## Show red screen edge flash when crystal takes damage

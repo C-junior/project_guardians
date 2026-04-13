@@ -27,6 +27,7 @@ var pending_statue_to_place: Resource = null
 var pending_statue_tier: int = 0  # Track tier for placement
 var is_initial_placement: bool = false  # True when placing starting statue
 var sell_mode: bool = false  # True when selling placed statues
+var is_relocate_mode: bool = false  # True when relocating a placed statue
 
 
 func _ready() -> void:
@@ -78,6 +79,7 @@ func _ready() -> void:
 		hud.inventory_button_pressed.connect(_on_hud_inventory_pressed)
 		hud.shop_button_pressed.connect(_on_hud_shop_pressed)
 		hud.start_wave_button_pressed.connect(_on_hud_start_wave_pressed)
+		hud.relocate_button_pressed.connect(_on_hud_relocate_pressed)
 	
 	# Connect game over buttons
 	if restart_button:
@@ -401,6 +403,53 @@ func _input(event: InputEvent) -> void:
 				statue_inventory_ui.visible = true
 				statue_inventory_ui.refresh()
 	
+	# Handle relocate mode (COMBAT — charge-based)
+	if is_relocate_mode and GameManager.current_state == GameManager.GameState.COMBAT:
+		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				var clicked_statue = _get_statue_at_position(get_global_mouse_position())
+				if clicked_statue:
+					# First click: pick up statue
+					if not arena.relocating_statue:
+						if arena.begin_relocate_combat(clicked_statue):
+							print("[Main] Statue picked up for relocate")
+						else:
+							_exit_relocate_mode()
+							print("[Main] Cannot relocate (no charges or invalid)")
+					else:
+						# Already relocating — clicking another statue switches selection
+						if clicked_statue != arena.relocating_statue:
+							arena.cancel_relocate_combat()
+							if arena.begin_relocate_combat(clicked_statue):
+								print("[Main] Switched relocate target")
+							else:
+								_exit_relocate_mode()
+						else:
+							# Click on same statue = confirm at current mouse pos cell
+							var grid_pos = arena.world_to_grid(get_global_mouse_position())
+							if arena.confirm_relocate_combat(grid_pos):
+								_exit_relocate_mode()
+								print("[Main] Relocate confirmed")
+							else:
+								print("[Main] Invalid cell for relocate")
+				else:
+					# Click on empty cell — confirm placement if relocating
+					if arena.relocating_statue:
+						var grid_pos = arena.world_to_grid(get_global_mouse_position())
+						if arena.confirm_relocate_combat(grid_pos):
+							_exit_relocate_mode()
+							print("[Main] Relocate confirmed")
+						else:
+							print("[Main] Invalid cell for relocate")
+					else:
+						_exit_relocate_mode()
+			elif event.button_index == MOUSE_BUTTON_RIGHT:
+				# Cancel
+				if arena.relocating_statue:
+					arena.cancel_relocate_combat()
+				_exit_relocate_mode()
+				print("[Main] Relocate cancelled")
+
 	# Handle sell mode for placed statues (right-click on statue in shop phase)
 	if sell_mode and event is InputEventMouseButton:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -414,12 +463,73 @@ func _input(event: InputEvent) -> void:
 			if statue_inventory_ui:
 				statue_inventory_ui.visible = true
 	
-	# Allow right-click selling placed statues during SHOP phase (quick sell)
-	if GameManager.current_state == GameManager.GameState.SHOP and not sell_mode and not GameManager.pending_upgrade and not pending_statue_to_place:
+	# Allow right-click quick-sell during SHOP phase (only when NOT in relocate mode)
+	if GameManager.current_state == GameManager.GameState.SHOP and not sell_mode and not GameManager.pending_upgrade and not pending_statue_to_place and not is_relocate_mode:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
 			if clicked_statue:
-				_sell_placed_statue(clicked_statue)
+				_enter_shop_relocate(clicked_statue)
+
+	# Handle shop-phase relocate input (separate from combat relocate)
+	if is_relocate_mode and GameManager.current_state == GameManager.GameState.SHOP:
+		_input_shop_relocate(event)
+
+
+## Enter shop-phase relocate (pick up a placed statue for free movement)
+func _enter_shop_relocate(statue: Node) -> void:
+	if not arena:
+		return
+
+	is_relocate_mode = true
+	arena.begin_relocate_shop(statue)
+
+	# Hide inventory and shop during relocate
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
+
+	print("[Main] Shop reposition — %s picked up" % [statue.statue_data.display_name if statue.statue_data else "?"])
+
+
+## Handle shop-phase relocate input (called when is_relocate_mode + SHOP state)
+func _input_shop_relocate(event: InputEvent) -> void:
+	if not event is InputEventMouseButton or not event.pressed:
+		return
+
+	if event.button_index == MOUSE_BUTTON_LEFT:
+		var clicked_statue = _get_statue_at_position(get_global_mouse_position())
+		if clicked_statue:
+			# Click on another statue = switch pickup
+			if arena.relocating_statue and clicked_statue != arena.relocating_statue:
+				arena.cancel_relocate_shop()
+				arena.begin_relocate_shop(clicked_statue)
+				print("[Main] Switched shop relocate target")
+			elif not arena.relocating_statue:
+				# Click on statue while not relocating = pick up
+				arena.cancel_relocate_shop()
+				arena.begin_relocate_shop(clicked_statue)
+				print("[Main] Picked up %s for shop relocate" % [clicked_statue.statue_data.display_name if clicked_statue.statue_data else "?"])
+		else:
+			# Click on empty cell = confirm placement
+			if arena.relocating_statue:
+				var grid_pos = arena.world_to_grid(get_global_mouse_position())
+				if arena.confirm_relocate_shop(grid_pos):
+					_exit_relocate_mode()
+					# Show inventory again
+					if statue_inventory_ui:
+						statue_inventory_ui.visible = true
+					print("[Main] Shop relocate confirmed")
+				else:
+					print("[Main] Invalid cell for shop relocate")
+	elif event.button_index == MOUSE_BUTTON_RIGHT:
+		# Cancel
+		if arena.relocating_statue:
+			arena.cancel_relocate_shop()
+		_exit_relocate_mode()
+		if statue_inventory_ui:
+			statue_inventory_ui.visible = true
+		print("[Main] Shop relocate cancelled")
 
 
 func _get_statue_at_position(pos: Vector2) -> Node:
@@ -668,6 +778,42 @@ func _on_hud_start_wave_pressed() -> void:
 	
 	# Start the wave
 	_start_first_wave()
+
+
+## HUD relocate button handler
+func _on_hud_relocate_pressed() -> void:
+	if not arena:
+		return
+	if not GameManager.can_use_relocate():
+		print("[Main] Cannot relocate - no charges remaining")
+		return
+
+	# Enter relocate mode
+	is_relocate_mode = true
+
+	# Hide inventory and shop
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
+
+	# Highlight valid cells for relocation
+	arena.highlight_valid_cells()
+	print("[Main] Relocate mode activated — click a placed statue to move it")
+
+
+## Exit relocate mode and clear highlights
+func _exit_relocate_mode() -> void:
+	is_relocate_mode = false
+	if arena:
+		arena.clear_cell_highlights()
+		# If a statue was being relocated, cancel it
+		if arena.relocating_statue:
+			arena.cancel_relocate_combat()
+	# Show inventory again if in shop phase
+	if GameManager.current_state == GameManager.GameState.SHOP:
+		if statue_inventory_ui:
+			statue_inventory_ui.visible = true
 
 
 ## Enemy Path Visibility (for debugging) - supports multiple paths

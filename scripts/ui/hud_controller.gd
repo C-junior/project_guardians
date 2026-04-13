@@ -72,6 +72,12 @@ func _ready() -> void:
 	_on_crystal_health_changed(GameManager.crystal_health, GameManager.crystal_max_health)
 	_on_wave_changed(GameManager.current_wave)
 	_update_action_buttons_visibility()
+
+	# Debug relocate button
+	if relocate_button:
+		print("[HUD] relocate_button found: %s" % relocate_button.name)
+	else:
+		push_error("[HUD] relocate_button is NULL! Check ActionButtons/RelocateButton in hud.tscn")
 	
 	# Setup danger effects
 	_setup_danger_effects()
@@ -103,13 +109,12 @@ func _on_start_wave_pressed() -> void:
 
 
 func _on_relocate_pressed() -> void:
-	if GameManager.current_state != GameManager.GameState.COMBAT:
-		return
-	if not GameManager.is_tangy_mvp_active():
-		return
-	if not GameManager.can_use_relocate():
-		return
-	relocate_button_pressed.emit()
+	if GameManager.current_state == GameManager.GameState.COMBAT:
+		# Combat relocate: emit signal so main.gd enters relocate mode
+		relocate_button_pressed.emit()
+	elif GameManager.current_state == GameManager.GameState.SHOP:
+		# Shop relocate: emit signal so main.gd enters relocate mode
+		relocate_button_pressed.emit()
 
 
 func _on_game_state_changed(_new_state: GameManager.GameState) -> void:
@@ -136,16 +141,23 @@ func _update_action_buttons_visibility() -> void:
 
 func _update_relocate_button() -> void:
 	if not relocate_button:
+		push_error("[HUD] >>> relocate_button is NULL! Check hud.tscn ActionButtons/RelocateButton")
 		return
-	if GameManager.is_tangy_mvp_active() and GameManager.current_state == GameManager.GameState.COMBAT:
+	var in_combat_or_shop = GameManager.current_state == GameManager.GameState.COMBAT or GameManager.current_state == GameManager.GameState.SHOP
+	print("[HUD] _update_relocate_button: state=%s in_combat_or_shop=%s visible=%s" % [GameManager.current_state, in_combat_or_shop, relocate_button.visible])
+	if in_combat_or_shop:
 		relocate_button.visible = true
-		relocate_button.text = "⚡ Relocate: %d/%d" % [GameManager.relocate_charges, GameManager.get_relocate_charges_per_wave()]
-		relocate_button.disabled = not GameManager.can_use_relocate()
-		# Highlight when charges available
-		if GameManager.can_use_relocate():
-			relocate_button.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
+		if GameManager.current_state == GameManager.GameState.COMBAT:
+			relocate_button.text = "⚡ Relocate: %d/%d" % [GameManager.relocate_charges, GameManager.get_relocate_charges_per_wave()]
+			relocate_button.disabled = not GameManager.can_use_relocate()
+			if GameManager.can_use_relocate():
+				relocate_button.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
+			else:
+				relocate_button.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
 		else:
-			relocate_button.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+			relocate_button.text = "🔄 Move"
+			relocate_button.disabled = false
+			relocate_button.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
 	else:
 		relocate_button.visible = false
 

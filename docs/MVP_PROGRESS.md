@@ -1,7 +1,7 @@
 # 📊 Progresso Real do MVP — Project Guardians
 
 **Data da Análise:** 12 de Abril de 2026
-**Última Verificação:** 12 de Abril de 2026
+**Última Verificação:** 12 de Abril de 2026 — FASE 1 COMPLETA ✅
 
 ---
 
@@ -16,7 +16,7 @@
 
 ---
 
-## 1. Reposicionamento (Shop + In-Combat)
+## 1. Reposicionamento (Shop + In-Combat) — ✅ FASE 1 COMPLETA
 
 | Componente | Status | Arquivo | Notas |
 |------------|--------|---------|-------|
@@ -35,11 +35,16 @@
 | `is_tangy_mvp_active()` | ✅ | `GameManager.gd:91` | Checa `current_map.tangy_mvp_enabled` |
 | `is_relocating` flag na estátua | ✅ | `statue_base.gd:18` | Usado para pausar ataque durante relocate |
 | `set_paused()` na estátua | ✅ | `statue_base.gd:1144` | Pausa attack timer + ghost sprite |
-| **Trigger: shop-phase reposition UI** | ❌ | — | **Nenhum código chama `begin_relocate_shop()`** |
-| **Botão de relocate no HUD** | ❌ | `hud.tscn` | **Não existe botão de relocate no HUD** |
-| **Signal de relocate button** | ❌ | `hud_controller.gd` | **Não existe signal `relocate_button_pressed`** |
-| **Input handler para relocate** | ❌ | `main.gd` `_input()` | **Não há branch para confirm/cancel relocate** |
-| **Integração com inventory UI** | ❌ | — | Inventory não esconde durante relocate |
+| **Trigger: shop-phase reposition** | ✅ | `main.gd:468` | Right-click em estátua durante SHOP → `_enter_shop_relocate()` |
+| **Botão de relocate no HUD** | ✅ | `hud.tscn:84` | `RelocateButton` adicionado em `ActionButtons` — visível em SHOP/COMBAT |
+| **Signal de relocate button** | ✅ | `hud_controller.gd:8` | `signal relocate_button_pressed()` conectado |
+| **Input handler para relocate (COMBAT)** | ✅ | `main.gd:407-448` | Left-click pick/confirm, right-click cancel |
+| **Input handler para relocate (SHOP)** | ✅ | `main.gd:480-492` | `_input_shop_relocate()` com confirm/cancel |
+| **Integração com inventory UI** | ✅ | `main.gd:789-807` | Inventory/shop escondidos durante relocate, restaurados ao sair |
+| **Right-click shortcut (COMBAT)** | ✅ | `main.gd:453-467` | Right-click em estátua durante combate entra direto em relocate |
+| **`is_relocate_mode` flag** | ✅ | `main.gd:31` | Gerencia estado do relocate mode |
+| **`_exit_relocate_mode()`** | ✅ | `main.gd:819-829` | Limpa highlights, cancela relocate, restaura UI |
+| **Debug prints** | ✅ | `hud_controller.gd:77`, `main.gd:457,483` | Prints para diagnostic state |
 
 ---
 
@@ -168,7 +173,7 @@
 | Componente | Status | Notas |
 |------------|--------|-------|
 | Pasta `projectguardians-main/` com arquivos antigos | ❌ | Contém versões antigas de 15+ arquivos .gd — deve ser deletada ou movida |
-| `main.gd` com 862 linhas | ⚠️ | Funcional mas monolítico — deveria ser refatorado |
+| `main.gd` com ~1030 linhas | ⚠️ | Funcional mas cresceu com relocate handlers — refatorar na Fase 6 |
 | GameManager_backup.gd | ⚠️ | Backup na pasta autoload — pode deletar |
 | Sprites de inimigos | ⚠️ | ~5/16 com sprites. Para MVP: goblin, orc, slime, goblin_boss têm sprites? |
 | Áudio (música, SFX) | ❌ | Zero áudio implementado |
@@ -180,7 +185,7 @@
 
 | Área | Progresso |
 |------|-----------|
-| Reposicionamento | ██████████░░░░░░░░░░ 50% (código existe, falta UI/integração) |
+| Reposicionamento | ████████████████████ 100% ✅ **FASE 1 COMPLETA** |
 | Role Passives | ███████████████░░░░░ 75% (código completo, falta storm_focus + tuning) |
 | Equipment | ████████████████░░░░ 80% (sistema completo, falta UI polish) |
 | Soft Aggro | ██████████████░░░░░░ 70% (avaliação existe, falta targeting em action + config) |
@@ -188,4 +193,4 @@
 | Balanceamento | ████░░░░░░░░░░░░░░░░ 20% (ondas configuradas, sem tuning) |
 | Assets/Polish | ████░░░░░░░░░░░░░░░░ 20% (sprites parciais, zero áudio) |
 
-**Overall: ~55% do MVP funcionalmente jogável**
+**Overall: ~60% do MVP funcionalmente jogável** (subiu de ~55%)

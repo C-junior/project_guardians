@@ -450,6 +450,25 @@ func _input(event: InputEvent) -> void:
 				_exit_relocate_mode()
 				print("[Main] Relocate cancelled")
 
+	# Right-click shortcut: enter relocate mode during COMBAT (when charges available)
+	if not is_relocate_mode and GameManager.current_state == GameManager.GameState.COMBAT and not pending_statue_to_place and not sell_mode:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
+			print("[Main] COMBAT right-click detected. Statue: %s | Can relocate: %s | Charges: %d" % [
+				clicked_statue != null,
+				GameManager.can_use_relocate(),
+				GameManager.relocate_charges
+			])
+			if clicked_statue and GameManager.can_use_relocate():
+				_on_hud_relocate_pressed()  # Enter relocate mode
+				# Now pick up the clicked statue
+				if arena.begin_relocate_combat(clicked_statue):
+					print("[Main] Statue picked up for relocate (right-click shortcut)")
+				else:
+					_exit_relocate_mode()
+					print("[Main] Cannot relocate statue")
+				return
+
 	# Handle sell mode for placed statues (right-click on statue in shop phase)
 	if sell_mode and event is InputEventMouseButton:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -463,12 +482,16 @@ func _input(event: InputEvent) -> void:
 			if statue_inventory_ui:
 				statue_inventory_ui.visible = true
 	
-	# Allow right-click quick-sell during SHOP phase (only when NOT in relocate mode)
+	# Allow right-click quick-relocate during SHOP phase (only when NOT in relocate mode)
 	if GameManager.current_state == GameManager.GameState.SHOP and not sell_mode and not GameManager.pending_upgrade and not pending_statue_to_place and not is_relocate_mode:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			var clicked_statue = _get_statue_at_position(get_global_mouse_position())
 			if clicked_statue:
+				print("[Main] Right-click on statue during SHOP — entering relocate mode: %s" % [clicked_statue.statue_data.display_name if clicked_statue.statue_data else "?"])
 				_enter_shop_relocate(clicked_statue)
+				return  # EXIT early — prevents same event from hitting _input_shop_relocate and cancelling
+			else:
+				print("[Main] Right-click during SHOP but NO statue clicked")
 
 	# Handle shop-phase relocate input (separate from combat relocate)
 	if is_relocate_mode and GameManager.current_state == GameManager.GameState.SHOP:
@@ -783,9 +806,10 @@ func _on_hud_start_wave_pressed() -> void:
 ## HUD relocate button handler
 func _on_hud_relocate_pressed() -> void:
 	if not arena:
+		push_warning("[Main] arena is null in _on_hud_relocate_pressed")
 		return
 	if not GameManager.can_use_relocate():
-		print("[Main] Cannot relocate - no charges remaining")
+		print("[Main] Cannot relocate - no charges remaining (charges: %d)" % GameManager.relocate_charges)
 		return
 
 	# Enter relocate mode
@@ -799,7 +823,7 @@ func _on_hud_relocate_pressed() -> void:
 
 	# Highlight valid cells for relocation
 	arena.highlight_valid_cells()
-	print("[Main] Relocate mode activated — click a placed statue to move it")
+	print("[Main] Relocate mode activated — click a placed statue to move it (charges left: %d)" % GameManager.relocate_charges)
 
 
 ## Exit relocate mode and clear highlights

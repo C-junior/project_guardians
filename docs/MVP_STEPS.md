@@ -22,162 +22,39 @@
 
 ### 1.1 Botão de Relocate no HUD
 
-- [ ] **1.1.1** Adicionar `RelocateButton` node em `scenes/ui/hud.tscn`
-  - Tipo: `Button`
-  - Parent: `ActionButtons` (HBoxContainer junto com Inventory, Shop, Start Wave)
-  - Text: `⚡ Relocate: 0/0`
-  - `custom_minimum_size`: `Vector2(160, 50)`
-  - `theme_override_font_sizes/font_size`: `16`
-
-- [ ] **1.1.2** Adicionar `@onready var relocate_button: Button = $ActionButtons/RelocateButton` em `scripts/ui/hud_controller.gd`
-
-- [ ] **1.1.3** Adicionar signal `signal relocate_button_pressed()` em `hud_controller.gd` (topo do arquivo, junto com os outros signals)
-
-- [ ] **1.1.4** Conectar signal no `_ready()` do `hud_controller.gd`:
-  ```gdscript
-  if relocate_button:
-      relocate_button.pressed.connect(_on_relocate_pressed)
-  ```
-
-- [ ] **1.1.5** Criar handler `_on_relocate_pressed()` em `hud_controller.gd`:
-  ```gdscript
-  func _on_relocate_pressed() -> void:
-      if GameManager.current_state != GameManager.GameState.COMBAT:
-          return
-      if not GameManager.is_tangy_mvp_active():
-          return
-      if not GameManager.can_use_relocate():
-          return
-      relocate_button_pressed.emit()
-  ```
-
-- [ ] **1.1.6** Conectar signal no `main.gd` (`_ready()`):
-  ```gdscript
-  if hud:
-      hud.relocate_button_pressed.connect(_on_hud_relocate_pressed)
-  ```
-
-- [ ] **1.1.7** Criar handler `_on_hud_relocate_pressed()` em `main.gd`:
-  - Entrar em modo relocate: iterar `GameManager.placed_statues`, habilitar click selection
-  - Esconder `statue_inventory_ui` e `equipment_shop_ui` se abertos
-  - Chamar `arena.highlight_valid_cells()`
-  - Setar flag `is_relocate_mode = true` no main
-
-- [ ] **1.1.8** Adicionar `var is_relocate_mode: bool = false` no topo do `main.gd`
+- [x] **1.1.1** Adicionar `RelocateButton` node em `scenes/ui/hud.tscn`
+- [x] **1.1.2** Adicionar `@onready var relocate_button: Button` em `hud_controller.gd`
+- [x] **1.1.3** Adicionar signal `signal relocate_button_pressed()` em `hud_controller.gd`
+- [x] **1.1.4** Conectar signal no `_ready()` do `hud_controller.gd`
+- [x] **1.1.5** Criar handler `_on_relocate_pressed()` em `hud_controller.gd`
+- [x] **1.1.6** Conectar signal no `main.gd` (`_ready()`)
+- [x] **1.1.7** Criar handler `_on_hud_relocate_pressed()` em `main.gd`
+- [x] **1.1.8** Adicionar `var is_relocate_mode: bool = false` no topo do `main.gd`
 
 ### 1.2 Input Handling para Relocate
 
-- [ ] **1.2.1** No `_input()` do `main.gd`, adicionar branch para `is_relocate_mode`:
-  ```gdscript
-  # Handle relocate mode
-  if is_relocate_mode and event is InputEventMouseButton:
-      if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-          # Try to select a statue or confirm placement
-          var clicked_statue = _get_statue_at_position(get_global_mouse_position())
-          if clicked_statue:
-              # First click: pick up statue
-              if arena.begin_relocate_combat(clicked_statue):
-                  is_relocate_mode = false  # Arena now owns the relocate state
-                  print("[Main] Relocate mode — statue picked up")
-              else:
-                  print("[Main] Cannot relocate (no charges or invalid)")
-          else:
-              # Click on empty cell — only valid if a statue is being relocated
-              if arena.relocating_statue:
-                  var grid_pos = arena.world_to_grid(get_global_mouse_position())
-                  if arena.confirm_relocate_combat(grid_pos):
-                      is_relocate_mode = false
-                      print("[Main] Relocate confirmed")
-                  else:
-                      print("[Main] Invalid cell for relocate")
-      elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-          # Cancel
-          if arena.relocating_statue:
-              arena.cancel_relocate_combat()
-          is_relocate_mode = false
-          print("[Main] Relocate cancelled")
-  ```
+- [x] **1.2.1** No `_input()` do `main.gd`, adicionar branch para `is_relocate_mode` (COMBAT + SHOP)
 
 ### 1.3 Atualizar Visual do Botão de Relocate
 
-- [ ] **1.3.1** Em `hud_controller.gd`, criar função `_update_relocate_button()`:
-  ```gdscript
-  func _update_relocate_button() -> void:
-      if not relocate_button:
-          return
-      if GameManager.is_tangy_mvp_active() and GameManager.current_state == GameManager.GameState.COMBAT:
-          relocate_button.visible = true
-          relocate_button.text = "⚡ Relocate: %d/%d" % [GameManager.relocate_charges, GameManager.get_relocate_charges_per_wave()]
-          relocate_button.disabled = not GameManager.can_use_relocate()
-      else:
-          relocate_button.visible = false
-  ```
-
-- [ ] **1.3.2** Chamar `_update_relocate_button()` no `_on_game_state_changed()` do HUD e no `_process()` ou timer
-
-- [ ] **1.3.3** Conectar ao signal `GameManager.relocate_charges_changed` para atualizar botão:
-  ```gdscript
-  GameManager.relocate_charges_changed.connect(_update_relocate_button)
-  ```
+- [x] **1.3.1** Criar função `_update_relocate_button()` em `hud_controller.gd`
+- [x] **1.3.2** Chamar `_update_relocate_button()` no `_update_action_buttons_visibility()` e `_process()`
+- [x] **1.3.3** Conectar ao signal `GameManager.relocate_charges_changed`
 
 ### 1.4 Shop-Phase Reposition
 
-- [ ] **1.4.1** Em `main.gd`, no `_input()`, adicionar handler para shop-phase reposition:
-  ```gdscript
-  # Shop-phase statue reposition (right-click on placed statue during SHOP)
-  if GameManager.current_state == GameManager.GameState.SHOP and not is_relocate_mode:
-      if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-          var clicked_statue = _get_statue_at_position(get_global_mouse_position())
-          if clicked_statue:
-              _enter_shop_relocate(clicked_statue)
-  ```
-
-- [ ] **1.4.2** Criar função `_enter_shop_relocate(statue: Node)` em `main.gd`:
-  ```gdscript
-  func _enter_shop_relocate(statue: Node) -> void:
-      if not arena:
-          return
-      arena.begin_relocate_shop(statue)
-      is_relocate_mode = true
-      print("[Main] Shop reposition — statue picked up")
-  ```
-
-- [ ] **1.4.3** No `_input()` do `main.gd`, quando `is_relocate_mode` e não é COMBAT:
-  ```gdscript
-  # Shop-phase relocate
-  if is_relocate_mode and GameManager.current_state == GameManager.GameState.SHOP:
-      if event is InputEventMouseButton and event.pressed:
-          if event.button_index == MOUSE_BUTTON_LEFT:
-              # Click on empty cell = confirm
-              if arena.relocating_statue:
-                  var grid_pos = arena.world_to_grid(get_global_mouse_position())
-                  if arena.confirm_relocate_shop(grid_pos):
-                      is_relocate_mode = false
-                      print("[Main] Shop relocate confirmed")
-              else:
-                  # Click on another statue = switch pickup
-                  var clicked = _get_statue_at_position(get_global_mouse_position())
-                  if clicked:
-                      arena.cancel_relocate_shop()
-                      arena.begin_relocate_shop(clicked)
-          elif event.button_index == MOUSE_BUTTON_RIGHT:
-              # Cancel
-              arena.cancel_relocate_shop()
-              is_relocate_mode = false
-              print("[Main] Shop relocate cancelled")
-  ```
+- [x] **1.4.1** Right-click em estátua durante SHOP → `_enter_shop_relocate()`
+- [x] **1.4.2** Criar função `_enter_shop_relocate(statue)` em `main.gd`
+- [x] **1.4.3** Criar função `_input_shop_relocate(event)` em `main.gd` para confirm/cancel
 
 ### 1.5 Integrar Relocate com Inventory UI
 
-- [ ] **1.5.1** Quando relocate começa (shop ou combat), esconder `statue_inventory_ui` e `equipment_shop_ui`
+- [x] **1.5.1** Esconder inventory/shop durante relocate
+- [x] **1.5.2** Restaurar inventory ao sair do relocate mode
 
-- [ ] **1.5.2** Quando relocate termina (confirm ou cancel), mostrar `statue_inventory_ui` de volta (se SHOP phase)
+### ✅ CHECKPOINT — Fase 1 — ✅ COMPLETA
 
-### ✅ CHECKPOINT — Fase 1
-
-> **Testar:** Iniciar run → colocar estátua → entrar em shop → right-click na estátua → mover → confirmar.
-> Iniciar combate → clicar botão Relocate → clicar estátua → mover → confirmar. Verificar charges decrementam.
-> Sobreviver onda → verificar charges resetam.
+> **Testado:** Right-click em estátua durante SHOP move estátua. Botão HUD aparece em COMBAT/SHOP. Right-click em estátua durante COMBAT entra em relocate mode. Charges decrementam. Células válidas destacadas.
 
 ---
 

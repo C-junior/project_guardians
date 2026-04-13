@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://statue_inventory_ui"]
+[gd_scene load_steps=2 format=3 uid="uid://qfxq3swacxxs"]
 
-[ext_resource type="Script" path="res://scripts/ui/statue_inventory_ui.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bgi44b1dx8lgs" path="res://scripts/ui/statue_inventory_ui.gd" id="1_script"]
 
 [node name="StatueInventoryUI" type="CanvasLayer"]
 layer = 8
@@ -51,8 +51,8 @@ theme_override_constants/separation = 15
 
 [node name="Title" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 20
 text = "🗿 Statues & Equipment"
 
 [node name="Spacer" type="Control" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
@@ -94,8 +94,8 @@ theme_override_constants/separation = 10
 
 [node name="EmptyLabel" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 14
 text = "No items in inventory"
 horizontal_alignment = 1
 
@@ -128,8 +128,8 @@ theme_override_constants/separation = 4
 
 [node name="DetailName" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 16
 text = "Item Name"
 
 [node name="DetailTier" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo"]
@@ -139,19 +139,19 @@ text = "★ Base"
 
 [node name="DetailStats" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 11
 text = "DMG: 10 | SPD: 1.0 | RNG: 200"
 
 [node name="DetailEquipment" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 1, 0.7, 1)
 theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.5, 1.0, 0.7, 1)
 text = "Equipment: Power Rune, Range Rune"
 
 [node name="DetailDesc" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/DetailPanel/DetailMargin/DetailHBox/DetailInfo"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 10
 text = "Description text here..."
 autowrap_mode = 2

@@ -75,10 +75,12 @@ func get_stats_for_tier(tier: int, rarity_override: int = -1) -> Dictionary:
 	}
 
 
-## Get cost for this statue at given rarity
-func get_cost() -> int:
+## Get cost for this statue at given rarity and optional tier
+func get_cost(tier: int = 0) -> int:
 	var rarity_multipliers = [1.0, 1.3, 1.6, 2.0, 2.5]
-	return int(base_cost * rarity_multipliers[rarity])
+	var base = int(base_cost * rarity_multipliers[rarity])
+	var tier_multipliers = [1.0, 1.4, 1.8, 2.5]  # Same as evolution multipliers
+	return int(base * tier_multipliers[clamp(tier, 0, 3)])
 
 
 ## Get tier name
@@ -101,9 +103,7 @@ func get_rarity_color() -> Color:
 
 ## Get sell value for this statue at given tier (50% of purchase cost)
 func get_sell_value(tier: int = 0) -> int:
-	var tier_multipliers = [1.0, 1.4, 1.8, 2.5]  # Same as evolution multipliers
-	var tier_mult = tier_multipliers[clamp(tier, 0, 3)]
-	return int(get_cost() * tier_mult * 0.5)
+	return int(get_cost(tier) * 0.5)
 
 
 func get_tactical_role_name() -> String:

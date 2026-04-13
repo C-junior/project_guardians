@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://equipment_shop_ui"]
+[gd_scene load_steps=2 format=3 uid="uid://dv17k61f538af"]
 
-[ext_resource type="Script" path="res://scripts/ui/equipment_shop_ui.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://vldjemc02pjr" path="res://scripts/ui/equipment_shop_ui.gd" id="1_script"]
 
 [node name="EquipmentShopUI" type="CanvasLayer"]
 layer = 9
@@ -31,9 +31,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -560.0
-offset_top = -340.0
+offset_top = -220.0
 offset_right = 560.0
-offset_bottom = 340.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -51,7 +51,7 @@ theme_override_constants/margin_bottom = 15
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control/Panel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="Header" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -60,7 +60,7 @@ theme_override_constants/separation = 20
 [node name="Title" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "⚒️ Equipment Shop"
+text = "⚒️ Rune Shop"
 
 [node name="Spacer" type="Control" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
@@ -68,40 +68,21 @@ size_flags_horizontal = 3
 
 [node name="GoldLabel" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 22
 text = "💰 1000"
 
-[node name="RuneHeader" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer"]
+[node name="Subtitle" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.8, 1.0, 1)
+theme_override_colors/font_color = Color(0.6, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 14
 text = "🔮 Runes — Equip on your statues (2 slots each)"
 horizontal_alignment = 1
 
 [node name="ItemsContainer" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 220)
 size_flags_vertical = 3
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="Separator" type="HSeparator" parent="Control/Panel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="StatueCatalogHeader" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(1.0, 0.85, 0.5, 1)
-text = "🗿 Statue Catalog — Always available"
-horizontal_alignment = 1
-
-[node name="StatueCatalogContainer" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 170)
-size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 alignment = 1
 
 [node name="Footer" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBoxContainer"]

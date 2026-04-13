@@ -53,7 +53,13 @@ func _ready() -> void:
 	GameManager.inventory_changed.connect(_on_inventory_changed)
 	
 	_update_tab_styles()
-
+	
+	# Make detail panel a floating overlay
+	if detail_panel:
+		detail_panel.top_level = true
+		detail_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		detail_panel.custom_minimum_size = Vector2(250, 0)
+		detail_panel.z_index = 100
 
 func open() -> void:
 	visible = true
@@ -77,21 +83,24 @@ func refresh() -> void:
 
 
 func _refresh_statues() -> void:
-	var statues = GameManager.get_inventory_items("statues")
+	var unlocked_statues = GameManager.get_unlocked_statue_resources()
 	
-	empty_label.visible = statues.is_empty()
+	empty_label.visible = unlocked_statues.is_empty()
 	
-	for entry in statues:
-		var statue_data = entry["data"]
-		var tier = entry["tier"] if "tier" in entry else 0
-		var equipped_items = entry["equipment"] if "equipment" in entry else []
+	for statue_data in unlocked_statues:
+		var owned_count = GameManager.get_inventory_count(statue_data, "statues")
+		var tier = 0
+		var equipped_items = []
+		
+		var cost = statue_data.get_cost(tier) if statue_data.has_method("get_cost") else 50
+		var can_afford = owned_count > 0 or GameManager.can_afford(cost)
 
-		var card = _create_statue_card(statue_data, tier, equipped_items)
+		var card = _create_statue_card(statue_data, tier, equipped_items, owned_count, cost, can_afford)
 		if card:
 			items_grid.add_child(card)
 
 
-func _create_statue_card(statue_data: Resource, tier: int, equipped_items: Array) -> Control:
+func _create_statue_card(statue_data: Resource, tier: int, equipped_items: Array, owned_count: int = 0, cost: int = 50, can_afford: bool = true) -> Control:
 	if not statue_data:
 		return null
 	
@@ -122,11 +131,11 @@ func _create_statue_card(statue_data: Resource, tier: int, equipped_items: Array
 	card.add_theme_stylebox_override("panel", stylebox)
 	
 	# Hover for detail
-	card.mouse_entered.connect(_on_card_hovered.bind(statue_data, tier, equipped_items))
+	card.mouse_entered.connect(_on_card_hovered.bind(card, statue_data, tier, equipped_items))
 	card.mouse_exited.connect(_on_card_unhovered)
 	
 	# Drag-and-drop for statues
-	card.gui_input.connect(_on_card_gui_input.bind(card, statue_data, tier))
+	card.gui_input.connect(_on_card_gui_input.bind(card, statue_data, tier, can_afford))
 	
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 6)
@@ -196,19 +205,20 @@ func _create_statue_card(statue_data: Resource, tier: int, equipped_items: Array
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	inner_vbox.add_child(btn_hbox)
 	
-	# Place button
-	var place_btn = Button.new()
-	place_btn.text = "📍 Place"
-	place_btn.add_theme_font_size_override("font_size", 11)
-	place_btn.pressed.connect(_on_place_statue.bind(statue_data, tier))
-	btn_hbox.add_child(place_btn)
-	
-	# Drag hint
-	var drag_hint = Label.new()
-	drag_hint.text = "🖱️ Drag"
-	drag_hint.add_theme_font_size_override("font_size", 9)
-	drag_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 0.8))
-	btn_hbox.add_child(drag_hint)
+	# Place button replaced by click action
+	var cost_label = Label.new()
+	if owned_count > 0:
+		cost_label.text = "📍 Click to place (Owned)"
+		cost_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+	else:
+		cost_label.text = "📍 Click to buy (%dG)" % cost
+		if can_afford:
+			cost_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+		else:
+			cost_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
+			
+	cost_label.add_theme_font_size_override("font_size", 11)
+	btn_hbox.add_child(cost_label)
 	
 	return card
 
@@ -244,7 +254,7 @@ func _create_equipment_card(equipment: EquipmentData) -> Control:
 	card.add_theme_stylebox_override("panel", stylebox)
 	
 	# Hover for detail
-	card.mouse_entered.connect(_on_equipment_card_hovered.bind(equipment))
+	card.mouse_entered.connect(_on_equipment_card_hovered.bind(card, equipment))
 	card.mouse_exited.connect(_on_card_unhovered)
 	
 	var vbox = VBoxContainer.new()
@@ -326,12 +336,42 @@ func _create_equipment_card(equipment: EquipmentData) -> Control:
 
 
 ## Detail panel handlers
-func _on_card_hovered(statue_data: Resource, tier: int, equipped_items: Array) -> void:
+func _on_card_hovered(card: Control, statue_data: Resource, tier: int, equipped_items: Array) -> void:
 	_show_statue_detail(statue_data, tier, equipped_items)
+	_position_detail_panel(card)
 
 
-func _on_equipment_card_hovered(equipment: EquipmentData) -> void:
+func _on_equipment_card_hovered(card: Control, equipment: EquipmentData) -> void:
 	_show_equipment_detail(equipment)
+	_position_detail_panel(card)
+
+
+func _position_detail_panel(card: Control) -> void:
+	if not detail_panel:
+		return
+	
+	# Delay for 1 frame to ensure size is calculated
+	await get_tree().process_frame
+	
+	if not is_instance_valid(card) or not is_instance_valid(detail_panel):
+		return
+		
+	var card_pos = card.global_position
+	var panel_size = detail_panel.size
+	var screen_size = detail_panel.get_viewport_rect().size
+	
+	var target_x = card_pos.x + card.size.x + 10
+	if target_x + panel_size.x > screen_size.x:
+		target_x = card_pos.x - panel_size.x - 10
+		
+	var target_y = card_pos.y
+	if target_y + panel_size.y > screen_size.y:
+		target_y = screen_size.y - panel_size.y - 10
+		
+	if target_y < 10:
+		target_y = 10
+		
+	detail_panel.global_position = Vector2(target_x, target_y)
 
 
 func _on_card_unhovered() -> void:
@@ -701,10 +741,12 @@ func _show_equip_feedback(msg: String, color: Color = Color(1.0, 0.9, 0.4)) -> v
 
 
 ## Drag-and-drop handlers
-func _on_card_gui_input(event: InputEvent, card: Control, statue_data: Resource, tier: int) -> void:
+func _on_card_gui_input(event: InputEvent, card: Control, statue_data: Resource, tier: int, can_afford: bool = true) -> void:
+	if not can_afford:
+		return
 	if event is InputEventMouseButton:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_start_drag(statue_data, tier, card)
+			_on_place_statue(statue_data, tier)
 
 
 func _start_drag(statue_data: Resource, tier: int, source_card: Control) -> void:

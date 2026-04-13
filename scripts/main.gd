@@ -41,8 +41,6 @@ func _ready() -> void:
 	
 	# Connect shop signals (with null check)
 	if equipment_shop_ui:
-		equipment_shop_ui.equipment_purchased.connect(_on_equipment_purchased)
-		equipment_shop_ui.statue_purchased.connect(_on_statue_purchased)
 		equipment_shop_ui.shop_closed.connect(_on_shop_closed)
 	else:
 		push_error("[Main] EquipmentShopUI not found!")
@@ -272,20 +270,19 @@ func _on_equipment_applied_to_statue(statue_data: Resource, equipment: Resource)
 		hud.refresh()
 
 
-## Called when player wants to place a statue from inventory
+## Called when player wants to place a statue from inventory or shop
 func _on_inventory_place_statue(statue_data: Resource, tier: int = 0) -> void:
-	if GameManager.has_in_inventory(statue_data, "statues"):
-		pending_statue_to_place = statue_data
-		pending_statue_tier = tier
-		is_initial_placement = false
-		
-		# Hide inventory during placement
-		if statue_inventory_ui:
-			statue_inventory_ui.visible = false
-		if equipment_shop_ui:
-			equipment_shop_ui.visible = false
-		
-		_enter_placement_mode()
+	pending_statue_to_place = statue_data
+	pending_statue_tier = tier
+	is_initial_placement = false
+	
+	# Hide inventory during placement
+	if statue_inventory_ui:
+		statue_inventory_ui.visible = false
+	if equipment_shop_ui:
+		equipment_shop_ui.visible = false
+	
+	_enter_placement_mode()
 
 
 func _on_shop_closed() -> void:
@@ -300,6 +297,7 @@ func _on_shop_closed() -> void:
 		if arena:
 			arena.start_wave(wave_data)
 		print("[Main] Starting wave %d with enemies" % GameManager.current_wave)
+
 
 
 func _enter_placement_mode() -> void:
@@ -332,7 +330,11 @@ func _input(event: InputEvent) -> void:
 				if placed:
 					# Only remove from inventory if placement succeeded
 					if not is_initial_placement:
-						GameManager.remove_from_inventory(pending_statue_to_place, "statues", pending_statue_tier)
+						if GameManager.get_inventory_count(pending_statue_to_place, "statues") > 0:
+							GameManager.remove_from_inventory(pending_statue_to_place, "statues", pending_statue_tier)
+						else:
+							var cost = pending_statue_to_place.get_cost() if pending_statue_to_place.has_method("get_cost") else 50
+							GameManager.spend_gold(cost)
 					
 					pending_statue_to_place = null
 					pending_statue_tier = 0

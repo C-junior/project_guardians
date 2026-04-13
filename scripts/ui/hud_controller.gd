@@ -88,6 +88,9 @@ func _on_shop_pressed() -> void:
 		shop_button_pressed.emit()
 
 
+
+
+
 func _on_start_wave_pressed() -> void:
 	# Only allow starting wave during SHOP or SETUP phase
 	if GameManager.current_state != GameManager.GameState.COMBAT:

@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://statue_select001"]
+[gd_scene load_steps=2 format=3 uid="uid://cuhb2aysg00pb"]
 
-[ext_resource type="Script" path="res://scripts/ui/statue_selection_ui.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://m8rtif1h2xd1" path="res://scripts/ui/statue_selection_ui.gd" id="1_script"]
 
 [node name="StatueSelectionUI" type="CanvasLayer"]
 layer = 10
@@ -59,15 +59,15 @@ theme_override_constants/separation = 5
 
 [node name="Title" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 36
 theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 36
 text = "⚔️ Choose Your Guardian ⚔️"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Control/Panel/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.7, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 16
 text = "Select a statue to begin your defense"
 horizontal_alignment = 1
 
